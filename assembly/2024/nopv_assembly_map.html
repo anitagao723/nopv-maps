@@ -13,12 +13,13 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:"DM Mono",monospace;height:100vh;display:flex;overflow:hidden}
 #sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#filters{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0}
 #hdr{padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .tag{font-size:9px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:4px}
 h1{font-family:"Syne",sans-serif;font-size:16px;font-weight:800;line-height:1.2;color:#fff}
 h1 span{color:var(--accent)}
 .sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
-#dist-panel{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+#dist-panel{padding:12px 14px;border-bottom:1px solid var(--border)}
 .dp-lbl{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .dp-num{font-family:"Syne",sans-serif;font-size:22px;font-weight:800;color:var(--accent);line-height:1}
 .dp-name{font-size:11px;color:#fff;margin-top:2px}
@@ -29,16 +30,14 @@ h1 span{color:var(--accent)}
 .dp-k{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .dp-v{font-size:11px;font-weight:700;color:var(--text);margin-top:1px}
 .dp-ph{color:var(--muted);font-size:10px;line-height:1.6}
-#metric-controls{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+#metric-controls{padding:12px 14px;border-bottom:1px solid var(--border)}
 .fl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent2);font-weight:500;margin-bottom:6px}
 .mbts{display:flex;flex-direction:column;gap:3px}
 .mbt{display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:left}
 .mbt.on{border-color:var(--accent);color:var(--text)}
 .msw{width:26px;height:6px;border-radius:2px;flex-shrink:0}
-#dist-list{flex:1;overflow-y:auto;min-height:0}
-#dist-list::-webkit-scrollbar{width:3px}
-#dist-list::-webkit-scrollbar-track{background:transparent}
-#dist-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#dist-list{overflow-y:visible}
+
 .dl-item{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;gap:7px}
 .dl-item:hover{background:rgba(255,255,255,.04)}
 .dl-item.active{background:rgba(232,255,71,.07);border-left:2px solid var(--accent)}
@@ -84,6 +83,7 @@ h1 span{color:var(--accent)}
     <h1>Assembly Districts<br><span>District Map</span></h1>
     <div class="sub">Hover or click a district<br>to explore aggregated property data</div>
   </div>
+  <div id="filters">
   <div id="dist-panel">
     <div class="dp-lbl">Selected District</div>
     <div class="dp-ph" id="dp-ph">Hover or click a district on the map</div>
@@ -112,6 +112,8 @@ h1 span{color:var(--accent)}
     <div class="lb" id="lbar"></div>
     <div class="ltx"><span>Less</span><span>More</span></div>
   </div>
+  </div>
+  </div><!-- /#filters -->
 </div>
 <div id="map"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
