@@ -13,7 +13,7 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:"DM Mono",monospace;height:100vh;display:flex;overflow:hidden}
 #sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#filters{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0}
+#filters{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;scrollbar-width:none}#filters::-webkit-scrollbar{display:none}
 #hdr{padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .tag{font-size:9px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:4px}
 h1{font-family:"Syne",sans-serif;font-size:16px;font-weight:800;line-height:1.2;color:#fff}
@@ -36,7 +36,7 @@ h1 span{color:var(--accent)}
 .mbt{display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:left}
 .mbt.on{border-color:var(--accent);color:var(--text)}
 .msw{width:26px;height:6px;border-radius:2px;flex-shrink:0}
-#dist-list{overflow-y:visible}
+#dist-list{max-height:320px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#dist-list::-webkit-scrollbar{width:3px}#dist-list::-webkit-scrollbar-track{background:transparent}#dist-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 .dl-item{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;gap:7px}
 .dl-item:hover{background:rgba(255,255,255,.04)}
