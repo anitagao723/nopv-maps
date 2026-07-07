@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NYC NOPV Property Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f14;--panel:#13161e;--border:#1e2330;--accent:#e8ff47;--accent2:#47c5ff;--text:#e2e8f0;--muted:#64748b;--red:#ff4757;--green:#47ff8c;--w:300px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;height:100vh;display:flex;overflow:hidden}
+#sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow:hidden}
+#hdr{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.tag{font-size:9px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:5px}
+h1{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;line-height:1.2;color:#fff}
+h1 span{color:var(--accent)}
+.sub{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5}
+#stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.sc{background:var(--panel);padding:9px 13px}
+.sk{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sv{font-size:17px;font-family:'Syne',sans-serif;font-weight:700;color:var(--accent);margin-top:1px}
+#filters{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+#filters::-webkit-scrollbar{width:3px}
+#filters::-webkit-scrollbar-thumb{background:var(--border)}
+.fg{display:flex;flex-direction:column;gap:7px}
+.fl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent2);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{padding:4px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;border-radius:3px;transition:all .15s}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#0d0f14;font-weight:500}
+.bchips{display:flex;flex-direction:column;gap:3px}
+.bchip{display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:left}
+.bchip.on{border-color:var(--accent2);color:var(--accent2);background:rgba(71,197,255,.05)}
+.bd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.srow{display:flex;align-items:center;gap:7px}
+.sval{font-size:10px;color:var(--text);min-width:72px;text-align:right;white-space:nowrap}
+input[type=range]{flex:1;-webkit-appearance:none;height:2px;background:var(--border);border-radius:1px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg)}
+.slbls{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px}
+.trow{display:flex;align-items:center;gap:9px}
+.tog{width:34px;height:18px;background:var(--border);border-radius:9px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none}
+.tog.on{background:var(--accent)}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s}
+.tog.on::after{transform:translateX(16px)}
+.tlbl{font-size:10px;color:var(--text)}
+.mbts{display:flex;flex-direction:column;gap:4px}
+.mbt{display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:left}
+.mbt.on{border-color:var(--accent);color:var(--text)}
+.msw{width:28px;height:7px;border-radius:2px;flex-shrink:0}
+.notice{background:rgba(232,255,71,.07);border:1px solid rgba(232,255,71,.18);border-radius:4px;padding:9px;font-size:9px;color:rgba(232,255,71,.75);line-height:1.6}
+.notice strong{color:var(--accent);display:block;margin-bottom:2px}
+#legend{padding:11px 14px;border-top:1px solid var(--border)}
+.lt{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.lb{height:7px;border-radius:2px;margin-bottom:4px}
+.ltx{display:flex;justify-content:space-between;font-size:9px;color:var(--muted)}
+#reset{margin:0 14px 14px;padding:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border-radius:3px;transition:all .15s}
+#reset:hover{border-color:var(--red);color:var(--red)}
+#map{flex:1}
+.leaflet-container{background:#0a0c10}
+/* Dark map tiles */
+.leaflet-tile{filter:brightness(.9) invert(1) contrast(1.1) hue-rotate(180deg) sepia(.1)}
+/* Popup styling */
+.leaflet-popup-content-wrapper{background:#13161e!important;border:1px solid #1e2330!important;border-radius:4px!important;box-shadow:0 8px 32px rgba(0,0,0,.6)!important;color:#e2e8f0!important;font-family:'DM Mono',monospace!important}
+.leaflet-popup-tip{background:#13161e!important}
+.p-addr{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#fff;margin-bottom:4px}
+.p-sub{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.p-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px}
+.p-k{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.p-v{font-size:12px;color:#e2e8f0;margin-top:1px}
+.p-v.hi{color:var(--red)}.p-v.lo{color:var(--green)}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:9999;transition:opacity .5s}
+#loading.out{opacity:0;pointer-events:none}
+.lt2{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff}
+.ls{font-size:10px;color:var(--muted)}
+.lbw{width:200px;height:2px;background:var(--border);border-radius:1px;overflow:hidden;margin-top:4px}
+.lba{height:100%;background:var(--accent);border-radius:1px;animation:lp 1.4s ease-in-out infinite}
+@keyframes lp{0%{width:0%}60%{width:75%}100%{width:100%}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent)">NYC NOPV &middot; 2026</div>
+  <div class="lt2">Loading Map</div>
+  <div class="ls" id="load-status">Parsing properties&hellip;</div>
+  <div class="lbw"><div class="lba"></div></div>
+</div>
+
+<div id="sidebar">
+  <div id="hdr">
+    <div class="tag">NYC NOPV &middot; 2026 Tax Year</div>
+    <h1>Rent-Stabilized<br><span>Property Map</span></h1>
+    <div class="sub">18,152 properties &middot; Click any dot for details</div>
+  </div>
+  <div id="stats">
+    <div class="sc"><div class="sk">Visible</div><div class="sv" id="cnt">&mdash;</div></div>
+    <div class="sc"><div class="sk">Visible Units</div><div class="sv" id="visunits">&mdash;</div></div>
+    <div class="sc"><div class="sk">Avg CTI</div><div class="sv" id="ocravg">&mdash;</div></div>
+  </div>
+  <div id="filters">
+    <div class="fg">
+
+    </div>
+    <div class="fg">
+      <div class="fl">Borough</div>
+      <div class="bchips">
+        <button class="bchip on" data-b="Manhattan"><span class="bd" style="background:#e8ff47"></span>Manhattan</button>
+        <button class="bchip on" data-b="Bronx"><span class="bd" style="background:#47c5ff"></span>Bronx</button>
+        <button class="bchip on" data-b="Brooklyn"><span class="bd" style="background:#ff8c47"></span>Brooklyn</button>
+        <button class="bchip on" data-b="Queens"><span class="bd" style="background:#c847ff"></span>Queens</button>
+        <button class="bchip on" data-b="Staten Island"><span class="bd" style="background:#47ffbd"></span>Staten Island</button>
+      </div>
+    </div>
+    <div class="fg">
+      <div class="fl">Taxable Value</div>
+      <div class="srow"><input type="range" id="tv0" min="0" max="100" value="0"><div class="sval" id="tv0l">$0</div></div>
+      <div class="srow"><input type="range" id="tv1" min="0" max="100" value="100"><div class="sval" id="tv1l">Max</div></div>
+      <div class="slbls"><span>$0</span><span>$718M</span></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Cost-to-Income Ratio (CTI) <span style="color:#64748b;font-size:10px">cumulative ≤ threshold</span></div>
+      <div class="bchips" id="ocrChips" style="flex-wrap:wrap;gap:5px">
+        <button class="bchip on" data-ocr="10"><span class="bd" style="background:#47ff8c"></span>≤10%</button>
+        <button class="bchip on" data-ocr="20"><span class="bd" style="background:#7aff5c"></span>≤20%</button>
+        <button class="bchip on" data-ocr="30"><span class="bd" style="background:#adf033"></span>≤30%</button>
+        <button class="bchip on" data-ocr="40"><span class="bd" style="background:#d4e020"></span>≤40%</button>
+        <button class="bchip on" data-ocr="50"><span class="bd" style="background:#ffd147"></span>≤50%</button>
+        <button class="bchip on" data-ocr="60"><span class="bd" style="background:#ffaa30"></span>≤60%</button>
+        <button class="bchip on" data-ocr="70"><span class="bd" style="background:#ff8020"></span>≤70%</button>
+        <button class="bchip on" data-ocr="80"><span class="bd" style="background:#ff5c14"></span>≤80%</button>
+        <button class="bchip on" data-ocr="90"><span class="bd" style="background:#ff3a0a"></span>≤90%</button>
+        <button class="bchip on" data-ocr="100"><span class="bd" style="background:#ff1a00"></span>≤100%</button>
+        <button class="bchip on" data-ocr="999"><span class="bd" style="background:#ff4757"></span>100%+</button>
+      </div>
+    </div>
+    <div class="fg" id="adjPanel">
+      <div class="fl">Expense Adjustment</div>
+      <div class="trow" style="margin-bottom:6px">
+        <button class="tog on" id="adjNone" onclick="setAdjMode(1)"></button>
+        <div class="tlbl">No adjustment</div>
+      </div>
+      <div class="trow" style="margin-bottom:6px">
+        <button class="tog" id="adjFloor" onclick="setAdjMode(2)"></button>
+        <div class="tlbl">Apply minimum floor per unit</div>
+      </div>
+      <div id="floorRow" style="display:none;margin:4px 0 6px 28px">
+        <input type="number" id="floorVal" min="0" step="500" value="12000"
+          style="width:110px;background:#1e2330;color:#e2e8f0;border:1px solid #2e3650;
+                 border-radius:4px;padding:4px 7px;font-size:12px">
+        <span style="color:#64748b;font-size:11px;margin-left:5px">$/unit floor</span>
+      </div>
+      <div class="trow" style="margin-bottom:6px">
+        <button class="tog" id="adjFixed" onclick="setAdjMode(3)"></button>
+        <div class="tlbl">Add fixed expense per unit</div>
+      </div>
+      <div id="fixedRow" style="display:none;margin:4px 0 6px 28px">
+        <input type="number" id="fixedVal" min="0" step="500" value="1500"
+          style="width:110px;background:#1e2330;color:#e2e8f0;border:1px solid #2e3650;
+                 border-radius:4px;padding:4px 7px;font-size:12px">
+        <span style="color:#64748b;font-size:11px;margin-left:5px">$/unit added</span>
+      </div>
+      <button onclick="applyAdj()" style="margin-top:6px;width:100%;padding:6px;
+        background:var(--accent);color:#000;border:none;border-radius:5px;
+        font-weight:700;font-size:12px;cursor:pointer">Apply</button>
+      <div id="adjNote" style="margin-top:5px;font-size:10px;color:#64748b"></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Tax Exemption</div>
+      <div class="trow"><button class="tog on" id="exY"></button><div class="tlbl">Show Exempt (Y)</div></div>
+      <div class="trow" style="margin-top:5px"><button class="tog on" id="exN"></button><div class="tlbl">Show Non-Exempt (N)</div></div>
+    </div>
+    <div class="fg">
+      <div class="fl">Color By</div>
+      <div class="mbts">
+        <button class="mbt" data-m="bor"><div class="msw" style="background:linear-gradient(90deg,#e8ff47,#47c5ff,#ff8c47,#c847ff)"></div>Borough</button>
+        <button class="mbt on" data-m="ocr"><div class="msw" style="background:linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)"></div>Cost-to-Income Ratio</button>
+        <button class="mbt" data-m="tv"><div class="msw" style="background:linear-gradient(90deg,#47c5ff,#c847ff)"></div>Taxable Value</button>
+      </div>
+    </div>
+    <div class="notice">
+      <strong>&#9888; Approximate Coordinates</strong>
+      Dots placed within borough bounds via Block/Lot. Run geocode_pluto.py with real PLUTO CSV for exact parcel locations.
+    </div>
+  </div>
+  <div id="legend">
+    <div class="lt" id="ltitle">Cost-to-Income Ratio</div>
+    <div class="lb" id="lbar" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>
+    <div class="ltx" id="ltix"><span>0%</span><span>75%</span><span>150%+</span></div>
+  </div>
+  <button id="reset">&#8635; Reset Filters</button>
+</div>
+
+<div id="map"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const MAX_TV = 718000000;
+
+// ── COLORS ────────────────────────────────────────────────────────────────
+const BOR_C={Manhattan:'#e8ff47',Bronx:'#47c5ff',Brooklyn:'#ff8c47',Queens:'#c847ff','Staten Island':'#47ffbd'};
+const TC_C={'1':'#ffd147','2':'#47c5ff','2A':'#47ff8c','2B':'#ff8c47','2C':'#c847ff','4':'#ff4757'};
+const OCR_STOPS=[[71,255,140],[255,209,71],[255,71,87]];
+const TV_STOPS=[[71,197,255],[200,71,255]];
+
+function lerp3(t,stops){
+  t=Math.max(0,Math.min(1,t));
+  const n=stops.length-1,i=Math.min(Math.floor(t*n),n-1),f=t*n-i,a=stops[i],b=stops[i+1];
+  const r=a[0]+(b[0]-a[0])*f|0,g=a[1]+(b[1]-a[1])*f|0,bl=a[2]+(b[2]-a[2])*f|0;
+  return `rgb(${r},${g},${bl})`;
+}
+
+let colorMode='ocr';
+function getColor(i){
+  if(colorMode==='bor') return BOR_C[D.bor[i]]||'#888';
+  if(colorMode==='ocr') return lerp3(effectiveOCR(i)/1.5, OCR_STOPS);
+  if(colorMode==='tv')  return lerp3(Math.log1p(D.tv[i])/Math.log1p(MAX_TV), TV_STOPS);
+  return '#888';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
+let tvMin=0,tvMax=100,showExY=true,showExN=true;
+// CTI buckets: set of upper bounds (10,20,...,100,999=100%+)
+let activeOcrBuckets=new Set([10,20,30,40,50,60,70,80,90,100,999]);
+let D=null;
+
+// ── Expense Adjustment State ──────────────────────────────────────────────
+// adjMode: 1=none, 2=floor, 3=fixed  (can combine 2+3)
+let adjModes = new Set([1]);
+let adjOCR = null;   // computed per-property adjusted OCR array (null = use D.ocr)
+
+function setAdjMode(m) {
+  if (m === 1) {
+    adjModes = new Set([1]);
+    document.getElementById('adjNone').classList.add('on');
+    document.getElementById('adjFloor').classList.remove('on');
+    document.getElementById('adjFixed').classList.remove('on');
+    document.getElementById('floorRow').style.display = 'none';
+    document.getElementById('fixedRow').style.display = 'none';
+  } else {
+    adjModes.delete(1);
+    document.getElementById('adjNone').classList.remove('on');
+    const btn = document.getElementById(m===2?'adjFloor':'adjFixed');
+    const row = document.getElementById(m===2?'floorRow':'fixedRow');
+    if (adjModes.has(m)) {
+      adjModes.delete(m);
+      btn.classList.remove('on');
+      row.style.display = 'none';
+    } else {
+      adjModes.add(m);
+      btn.classList.add('on');
+      row.style.display = 'block';
+    }
+    if (adjModes.size === 0) setAdjMode(1);
+  }
+}
+
+function applyAdj() {
+  if (!D) return;
+  const useFloor = adjModes.has(2);
+  const useFixed = adjModes.has(3);
+  const floor    = parseFloat(document.getElementById('floorVal').value) || 0;
+  const fixed    = parseFloat(document.getElementById('fixedVal').value) || 0;
+
+  if (!useFloor && !useFixed) {
+    adjOCR = null;
+    document.getElementById('adjNote').textContent = 'Showing original values from file.';
+    scheduleRender();
+    return;
+  }
+
+  adjOCR = new Float64Array(D.n);
+  let changed = 0;
+  for (let i = 0; i < D.n; i++) {
+    const ru  = D.ru[i] || 0;
+    const egi = D.egi[i] || 0;
+    if (!ru || !egi) { adjOCR[i] = D.ocr[i]; continue; }
+
+    // Always start from raw epu + tpu (before any floor/fixed)
+    // so the user's inputs are the sole adjustment — never double-applied
+    const rawEPU = (D.epu[i] || 0);
+    const rawTPU = (D.tpu[i] || 0);
+    let adjEPU = rawEPU + rawTPU;
+
+    // Apply floor to the combined adjusted expenses per unit
+    if (useFloor && adjEPU < floor) adjEPU = floor;
+
+    // Add fixed per-unit expense on top
+    if (useFixed) adjEPU += fixed;
+
+    const adjExp = adjEPU * ru;
+    adjOCR[i] = egi > 0 ? adjExp / egi : D.ocr[i];
+    if (Math.abs(adjOCR[i] - D.ocr[i]) > 0.0005) changed++;
+  }
+
+  const notes = [];
+  if (useFloor) notes.push('Floor: $'+floor.toLocaleString()+'/unit');
+  if (useFixed) notes.push('+$'+fixed.toLocaleString()+'/unit fixed');
+  document.getElementById('adjNote').textContent = notes.join(' + ') + ' → '+changed.toLocaleString()+' properties changed';
+  scheduleRender();
+}
+
+function effectiveOCR(i) {
+  return adjOCR ? adjOCR[i] : D.ocr[i];
+}
+
+function fmt$(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$'+v}
+
+// ── LEAFLET MAP ───────────────────────────────────────────────────────────
+// Use Leaflet's native canvas renderer — no external WebGL library needed.
+// All dots are Leaflet CircleMarkers drawn on a canvas layer.
+// Pan, zoom, click all work natively.
+const renderer = L.canvas({ padding: 0.5 });
+const map = L.map('map', { center:[40.705,-73.97], zoom:11, zoomControl:true });
+
+L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',{
+  attribution:'&copy; OpenStreetMap contributors &copy; CARTO',
+  subdomains:'abcd', maxZoom:19
+}).addTo(map);
+
+// ── MARKER LAYER ──────────────────────────────────────────────────────────
+let layerGroup = L.layerGroup().addTo(map);
+
+function popupHTML(i) {
+  const eff = effectiveOCR(i);
+  const orig = D.ocr[i];
+  const ocrPct = eff.toFixed(4)!==orig.toFixed(4) ?
+    (eff*100).toFixed(1)+'% <span style="color:#64748b;font-size:10px">(orig: '+(orig*100).toFixed(1)+'%)</span>' :
+    (eff*100).toFixed(1)+'%';
+  const ocrCls = eff>0.6?'hi':eff<0.35?'lo':'';
+  return `<div class="p-addr">${D.addr[i]}</div>
+<div class="p-sub">${D.bor[i]} &middot; ${D.bc[i]}</div>
+<div class="p-grid">
+  <div><div class="p-k">Taxable Value</div><div class="p-v">${fmt$(D.tv[i])}</div></div>
+  <div><div class="p-k">Market Value</div><div class="p-v">${fmt$(D.mv[i])}</div></div>
+  <div><div class="p-k">Gross Income</div><div class="p-v">${D.egi[i]?fmt$(D.egi[i]):'&mdash;'}</div></div>
+  <div><div class="p-k">Net Op. Income</div><div class="p-v">${D.noi[i]?fmt$(D.noi[i]):'&mdash;'}</div></div>
+  <div><div class="p-k">Taxes</div><div class="p-v">${D.tax[i]?fmt$(D.tax[i]):'&mdash;'}</div></div>
+  <div><div class="p-k">Tax Rate</div><div class="p-v">${D.tr[i]?D.tr[i].toFixed(3)+'%':'&mdash;'}</div></div>
+  <div><div class="p-k">Adj. Expenses</div><div class="p-v">${D.ae[i]?fmt$(D.ae[i]):'&mdash;'}</div></div>
+  <div><div class="p-k">Cost-to-Income</div><div class="p-v ${ocrCls}">${ocrPct}</div></div>
+  <div><div class="p-k">Res. Units</div><div class="p-v">${D.ru[i]||'&mdash;'}</div></div>
+  <div><div class="p-k">Gross Sq Ft</div><div class="p-v">${D.gsf[i]?D.gsf[i].toLocaleString():'&mdash;'}</div></div>
+  <div><div class="p-k">Exemption</div><div class="p-v">${D.ex[i]===1?'&#10003; Exempt':'Not Exempt'}</div></div>
+</div>`;
+}
+
+function passesFilter(i){
+  if(!activeBors.has(D.bor[i])) return false;
+  if(D.ex[i]===1&&!showExY) return false;
+  if(D.ex[i]===0&&!showExN) return false;
+  const tvLo=tvMin/100*MAX_TV, tvHi=tvMax/100*MAX_TV;
+  if(D.tv[i]<tvLo||D.tv[i]>tvHi) return false;
+  // CTI chip filter: property passes if its bucket is active
+  const ocrProp = effectiveOCR(i);
+  const ocrBkt = ocrProp>1.0?999:Math.ceil(ocrProp*10)*10||10;
+  if(!activeOcrBuckets.has(ocrBkt)) return false;
+  return true;
+}
+
+let renderTimer = null;
+function scheduleRender(){ clearTimeout(renderTimer); renderTimer=setTimeout(doRender,0); }
+
+function doRender(){
+  layerGroup.clearLayers();
+  let count=0, ocrSum=0, visUnits=0;
+  for(let i=0;i<D.n;i++){
+    if(!passesFilter(i)) continue;
+    count++;
+    ocrSum+=effectiveOCR(i);
+    visUnits+=D.ru[i]||0;
+    const r = D.tv[i]>5e6?7:D.tv[i]>1e6?5:3.5;
+    const circle = L.circleMarker([D.lat[i],D.lon[i]],{
+      renderer,
+      radius: r,
+      fillColor: getColor(i),
+      fillOpacity: 0.85,
+      color: 'rgba(0,0,0,0.35)',
+      weight: 0.5,
+    });
+    const idx=i;
+    circle.bindPopup(()=>popupHTML(idx), {maxWidth:300, className:'nopv-popup'});
+    layerGroup.addLayer(circle);
+  }
+  document.getElementById('cnt').textContent=count.toLocaleString();
+  document.getElementById('visunits').textContent=visUnits.toLocaleString();
+  document.getElementById('ocravg').textContent=count?(ocrSum/count*100).toFixed(1)+'%':'&mdash;';
+}
+
+// ── UI BINDINGS ───────────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
+
+  scheduleRender();
+}));
+document.querySelectorAll('.bchip').forEach(b=>b.addEventListener('click',()=>{
+  const bor=b.dataset.b;
+  activeBors.has(bor)?(activeBors.delete(bor),b.classList.remove('on')):(activeBors.add(bor),b.classList.add('on'));
+  scheduleRender();
+}));
+function bindSliders(i0,i1,l0,l1,sMin,sMax,fmt){
+  const s0=document.getElementById(i0),s1=document.getElementById(i1);
+  const e0=document.getElementById(l0),e1=document.getElementById(l1);
+  s0.addEventListener('input',()=>{let v=+s0.value;if(v>+s1.value){s1.value=v;sMax(v);e1.textContent=fmt(v,'max');}sMin(v);e0.textContent=fmt(v,'min');scheduleRender();});
+  s1.addEventListener('input',()=>{let v=+s1.value;if(v<+s0.value){s0.value=v;sMin(v);e0.textContent=fmt(v,'min');}sMax(v);e1.textContent=fmt(v,'max');scheduleRender();});
+}
+bindSliders('tv0','tv1','tv0l','tv1l',v=>tvMin=v,v=>tvMax=v,(v,e)=>e==='max'&&v>=99?'Max':fmt$(v/100*MAX_TV));
+// CTI chip bindings
+document.querySelectorAll('#ocrChips .bchip').forEach(b=>b.addEventListener('click',()=>{
+  const bkt=+b.dataset.ocr;
+  activeOcrBuckets.has(bkt)?(activeOcrBuckets.delete(bkt),b.classList.remove('on')):(activeOcrBuckets.add(bkt),b.classList.add('on'));
+  scheduleRender();
+}));
+document.getElementById('exY').addEventListener('click',function(){showExY=!showExY;this.classList.toggle('on',showExY);scheduleRender();});
+document.getElementById('exN').addEventListener('click',function(){showExN=!showExN;this.classList.toggle('on',showExN);scheduleRender();});
+
+const LGND={
+  bor:{t:'Borough',b:'linear-gradient(90deg,#e8ff47,#47c5ff,#ff8c47,#c847ff,#47ffbd)',x:['Mhtn','Bx','Bk','Qns','SI']},
+  ocr:{t:'Cost-to-Income Ratio',b:'linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)',x:['0%','75%','150%+']},
+  tv: {t:'Taxable Value',b:'linear-gradient(90deg,#47c5ff,#c847ff)',x:['$0','Mid','$718M']},
+};
+document.querySelectorAll('.mbt').forEach(b=>b.addEventListener('click',()=>{
+  colorMode=b.dataset.m;
+  document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const cfg=LGND[colorMode];
+  document.getElementById('ltitle').textContent=cfg.t;
+  document.getElementById('lbar').style.background=cfg.b;
+  document.getElementById('ltix').innerHTML=cfg.x.map(t=>`<span>${t}</span>`).join('');
+  scheduleRender();
+}));
+document.getElementById('reset').addEventListener('click',()=>{
+  activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
+  tvMin=0;tvMax=100;showExY=true;showExN=true;
+  document.querySelectorAll('.chip').forEach(b=>b.classList.add('on'));
+  document.querySelectorAll('.bchip').forEach(b=>b.classList.add('on'));
+  document.getElementById('tv0').value=0; document.getElementById('tv1').value=100;
+  document.getElementById('ocr0').value=0; document.getElementById('ocr1').value=200;
+  document.getElementById('tv0l').textContent='$0';
+  document.getElementById('tv1l').textContent='Max';
+  document.getElementById('ocr0l').textContent='0%';
+  document.getElementById('ocr1l').textContent='200%+';
+  document.getElementById('exY').classList.add('on');
+  document.getElementById('exN').classList.add('on');
+  setAdjMode(1); adjOCR=null;
+  document.getElementById('adjNote').textContent='';
+  scheduleRender();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+window.addEventListener('load', async ()=>{
+  document.getElementById('load-status').textContent='Fetching property data…';
+  try {
+    const resp = await fetch('nopv_data.json');
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    document.getElementById('load-status').textContent='Parsing data…';
+    D = await resp.json();
+    document.getElementById('load-status').textContent='Rendering map…';
+    setTimeout(()=>{
+      doRender();
+      const el=document.getElementById('loading');
+      el.classList.add('out');
+      setTimeout(()=>el.remove(),600);
+    },50);
+  } catch(err){
+    document.getElementById('load-status').textContent='Error: '+err.message;
+    console.error(err);
+  }
+});
+</script>
+</body>
+</html>
