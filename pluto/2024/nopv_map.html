@@ -434,8 +434,11 @@ window.addEventListener('load', async ()=>{
       setTimeout(()=>el.remove(),600);
     },50);
   } catch(err){
-    document.getElementById('load-status').textContent='Error: '+err.message;
-    console.error(err);
+    const ls = document.getElementById('load-status');
+    ls.textContent = 'Error: '+err.message;
+    ls.style.cssText = 'color:#ff4757;font-size:13px;font-weight:bold';
+    console.error('NOPV map error:', err);
+    // Don't hide the loading screen — show the error
   }
 });
 </script>
