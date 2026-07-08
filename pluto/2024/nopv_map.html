@@ -130,91 +130,14 @@ function lerp3(t,stops){
 function getColor(i){ return lerp3(effectiveOCR(i)/1.5, OCR_STOPS); }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
-let activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
-let tvMin=0,tvMax=100,showExY=true,showExN=true;
-// CTI buckets: set of upper bounds (10,20,...,100,999=100%+)
-let activeOcrBuckets=new Set([10,20,30,40,50,60,70,80,90,100,999]);
 let D=null;
 
 // ── Expense Adjustment State ──────────────────────────────────────────────
 // adjMode: 1=none, 2=floor, 3=fixed  (can combine 2+3)
-let adjModes = new Set([1]);
-let adjOCR = null;   // computed per-property adjusted OCR array (null = use D.ocr)
 
-function setAdjMode(m) {
-  if (m === 1) {
-    adjModes = new Set([1]);
-    document.getElementById('adjNone').classList.add('on');
-    document.getElementById('adjFloor').classList.remove('on');
-    document.getElementById('adjFixed').classList.remove('on');
-    document.getElementById('floorRow').style.display = 'none';
-    document.getElementById('fixedRow').style.display = 'none';
-  } else {
-    adjModes.delete(1);
-    document.getElementById('adjNone').classList.remove('on');
-    const btn = document.getElementById(m===2?'adjFloor':'adjFixed');
-    const row = document.getElementById(m===2?'floorRow':'fixedRow');
-    if (adjModes.has(m)) {
-      adjModes.delete(m);
-      btn.classList.remove('on');
-      row.style.display = 'none';
-    } else {
-      adjModes.add(m);
-      btn.classList.add('on');
-      row.style.display = 'block';
-    }
-    if (adjModes.size === 0) setAdjMode(1);
-  }
-}
 
-function applyAdj() {
-  if (!D) return;
-  const useFloor = adjModes.has(2);
-  const useFixed = adjModes.has(3);
-  const floor    = parseFloat(document.getElementById('floorVal').value) || 0;
-  const fixed    = parseFloat(document.getElementById('fixedVal').value) || 0;
 
-  if (!useFloor && !useFixed) {
-    adjOCR = null;
-    document.getElementById('adjNote').textContent = 'Showing original values from file.';
-    scheduleRender();
-    return;
-  }
-
-  adjOCR = new Float64Array(D.n);
-  let changed = 0;
-  for (let i = 0; i < D.n; i++) {
-    const ru  = D.ru[i] || 0;
-    const egi = D.egi[i] || 0;
-    if (!ru || !egi) { adjOCR[i] = D.ocr[i]; continue; }
-
-    // Always start from raw epu + tpu (before any floor/fixed)
-    // so the user's inputs are the sole adjustment — never double-applied
-    const rawEPU = (D.epu[i] || 0);
-    const rawTPU = (D.tpu[i] || 0);
-    let adjEPU = rawEPU + rawTPU;
-
-    // Apply floor to the combined adjusted expenses per unit
-    if (useFloor && adjEPU < floor) adjEPU = floor;
-
-    // Add fixed per-unit expense on top
-    if (useFixed) adjEPU += fixed;
-
-    const adjExp = adjEPU * ru;
-    adjOCR[i] = egi > 0 ? adjExp / egi : D.ocr[i];
-    if (Math.abs(adjOCR[i] - D.ocr[i]) > 0.0005) changed++;
-  }
-
-  const notes = [];
-  if (useFloor) notes.push('Floor: $'+floor.toLocaleString()+'/unit');
-  if (useFixed) notes.push('+$'+fixed.toLocaleString()+'/unit fixed');
-  document.getElementById('adjNote').textContent = notes.join(' + ') + ' → '+changed.toLocaleString()+' properties changed';
-  scheduleRender();
-}
-
-function effectiveOCR(i) {
-  return adjOCR ? adjOCR[i] : D.ocr[i];
-}
+function effectiveOCR(i) { return D.ocr[i]; }
 
 function fmt$(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$'+v}
 
