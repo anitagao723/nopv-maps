@@ -13,13 +13,12 @@
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:"DM Mono",monospace;height:100vh;display:flex;overflow:hidden}
 #sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
-#filters{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;scrollbar-width:none}#filters::-webkit-scrollbar{display:none}
 #hdr{padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .tag{font-size:9px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:4px}
 h1{font-family:"Syne",sans-serif;font-size:16px;font-weight:800;line-height:1.2;color:#fff}
 h1 span{color:var(--accent)}
 .sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
-#dist-panel{padding:12px 14px;border-bottom:1px solid var(--border)}
+#dist-panel{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .dp-lbl{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .dp-num{font-family:"Syne",sans-serif;font-size:22px;font-weight:800;color:var(--accent);line-height:1}
 .dp-name{font-size:11px;color:#fff;margin-top:2px}
@@ -30,7 +29,7 @@ h1 span{color:var(--accent)}
 .dp-k{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .dp-v{font-size:11px;font-weight:700;color:var(--text);margin-top:1px}
 .dp-ph{color:var(--muted);font-size:10px;line-height:1.6}
-#metric-controls{padding:12px 14px;border-bottom:1px solid var(--border)}
+#metric-controls{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .fl{font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent2);font-weight:500;margin-bottom:6px}
 .mbts{display:flex;flex-direction:column;gap:3px}
 .mbt{display:flex;align-items:center;gap:7px;padding:5px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:left}
@@ -93,17 +92,21 @@ h1 span{color:var(--accent)}
         <div><div class="dp-name" id="dp-name"></div><div class="dp-party" id="dp-party"></div></div>
       </div>
       <div class="dp-grid" id="dp-grid"></div>
+      <div style="margin-top:6px;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:3px"><div class="dp-k">Avg Cost-to-Income</div><div class="dp-v" id="dp-cti">&mdash;</div></div>
     </div>
   </div>
   <div id="metric-controls">
     <div class="fl">Color Districts By</div>
     <div class="mbts">
-        <button class="mbt on" data-metric="count"><div class="msw" style="background:linear-gradient(90deg,#47c5ff,#e8ff47)"></div>Property Count</button>
-        <button class="mbt" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Avg Cost-to-Income</button>
-        <button class="mbt" data-metric="tv"><div class="msw" style="background:linear-gradient(90deg,#47c5ff,#c847ff)"></div>Total Taxable Value</button>
-        <button class="mbt" data-metric="noi"><div class="msw" style="background:linear-gradient(90deg,#47ff8c,#47c5ff)"></div>Net Op. Income</button>
-        <button class="mbt" data-metric="tax"><div class="msw" style="background:linear-gradient(90deg,#ffd147,#ff8c47)"></div>Total Taxes</button>
+        <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Avg Cost-to-Income</button>
         <button class="mbt" data-metric="ru"><div class="msw" style="background:linear-gradient(90deg,#c847ff,#e8ff47)"></div>Total Res. Units</button>
+    </div>
+  </div>
+  <div style="padding:8px 14px;border-bottom:1px solid var(--border)">
+    <div class="fl">Display Mode</div>
+    <div style="display:flex;gap:6px">
+      <button class="bchip on" id="modeAbs" onclick="setCumulMode(false)">Individual</button>
+      <button class="bchip"    id="modeCum" onclick="setCumulMode(true)">Cumulative</button>
     </div>
   </div>
   <div id="dist-list"></div>
@@ -111,7 +114,6 @@ h1 span{color:var(--accent)}
     <div class="lt" id="ltitle"></div>
     <div class="lb" id="lbar"></div>
     <div class="ltx"><span>Less</span><span>More</span></div>
-  </div>
   </div>
   </div><!-- /#filters -->
 </div>
@@ -203,12 +205,38 @@ ${party?`<div class="pu-party ${pc}">${party}</div>`:''}
 }
 
 function buildList(){
-  const list=document.getElementById('dist-list');list.innerHTML='';
-  const entries=Object.entries(AGG).sort((a,b)=>(b[1][metric]||0)-(a[1][metric]||0));
-  const maxV=Math.max(...entries.map(([,d])=>d[metric]||0));
-  const cfg=METRIC_CFG[metric];
-  entries.forEach(([dk,d])=>{
-    const v=d[metric]||0,pct=maxV?v/maxV*100:0,color=distColor(dk);
+  const list=document.getElementById('dist-list');
+  const expanded=list.dataset.expanded==='1';
+  const entries=Object.entries(AGG).sort((a,b)=>(b[1][curMetric]||0)-(a[1][curMetric]||0));
+
+  // Cumulative: sort by district number, accumulate
+  let displayEntries;
+  if(cumulMode){
+    const numSorted=[...entries].sort((a,b)=>parseFloat(a[0])-parseFloat(b[0]));
+    let cum=0,cumCount=0;
+    displayEntries=numSorted.map(([dk,d])=>{
+      const v=d[curMetric]||0;
+      if(curMetric==='ocr'){
+        const cnt=d.count||1;
+        cum+=v*cnt; cumCount+=cnt;
+        return[dk,d,cumCount?(cum/cumCount):0];
+      } else {
+        cum+=v;
+        return[dk,d,cum];
+      }
+    });
+  } else {
+    displayEntries=entries.map(([dk,d])=>[dk,d,d[curMetric]||0]);
+  }
+
+  const maxV=Math.max(...displayEntries.map(([,,v])=>v||0))||1;
+  const cfg=METRIC_CFG[curMetric];
+  const SHOW=5;
+  const visible=expanded?displayEntries:displayEntries.slice(0,SHOW);
+
+  list.innerHTML='';
+  visible.forEach(([dk,d,v])=>{
+    const pct=maxV?v/maxV*100:0,color=distColor(dk);
     const feat=GJ.features.find(f=>String(f.properties[DIST_FIELD])===dk);
     const name=NAME_FIELD&&feat?(feat.properties[NAME_FIELD]||''):'';
     const item=document.createElement('div');
@@ -224,6 +252,24 @@ function buildList(){
     });
     list.appendChild(item);
   });
+
+  // See More / See Less button
+  if(displayEntries.length>SHOW){
+    const btn=document.createElement('div');
+    btn.style.cssText='padding:7px 14px;font-size:10px;color:var(--accent2);cursor:pointer;text-align:center;letter-spacing:.1em;text-transform:uppercase;border-top:1px solid var(--border)';
+    btn.textContent=expanded?'See Less ▲':'See More ▼';
+    btn.addEventListener('click',()=>{
+      list.dataset.expanded=expanded?'0':'1';
+      buildList();
+    });
+    list.appendChild(btn);
+  }
+
+  // Update avg CTI in selected district panel
+  if(selDist&&AGG[selDist]){
+    const ctiVal=AGG[selDist].ocr;
+    document.getElementById('dp-cti').textContent=ctiVal!==undefined?(ctiVal*100).toFixed(1)+'%':'—';
+  }
 }
 
 function refreshLayer(){if(distLayer)distLayer.setStyle(f=>distStyle(f));}
