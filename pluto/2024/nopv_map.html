@@ -113,12 +113,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
       </div>
     </div>
     <div class="fg">
-      <div class="fl">Taxable Value</div>
-      <div class="srow"><input type="range" id="tv0" min="0" max="100" value="0"><div class="sval" id="tv0l">$0</div></div>
-      <div class="srow"><input type="range" id="tv1" min="0" max="100" value="100"><div class="sval" id="tv1l">Max</div></div>
-      <div class="slbls"><span>$0</span><span>$718M</span></div>
-    </div>
-    <div class="fg">
       <div class="fl">Cost-to-Income Ratio (CTI) <span style="color:#64748b;font-size:10px">cumulative ≤ threshold</span></div>
       <div class="bchips" id="ocrChips" style="flex-wrap:wrap;gap:5px">
         <button class="bchip on" data-ocr="10"><span class="bd" style="background:#47ff8c"></span>≤10%</button>
@@ -205,7 +199,7 @@ function getColor(i){
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
-let tvMin=0,tvMax=100,showExY=true,showExN=true;
+let showExY=true,showExN=true;
 // CTI buckets: set of upper bounds (10,20,...,100,999=100%+)
 let activeOcrBuckets=new Set([10,20,30,40,50,60,70,80,90,100,999]);
 let D=null;
@@ -335,8 +329,6 @@ function passesFilter(i){
   if(!activeBors.has(D.bor[i])) return false;
   if(D.ex[i]===1&&!showExY) return false;
   if(D.ex[i]===0&&!showExN) return false;
-  const tvLo=tvMin/100*MAX_TV, tvHi=tvMax/100*MAX_TV;
-  if(D.tv[i]<tvLo||D.tv[i]>tvHi) return false;
   // CTI chip filter: property passes if its bucket is active
   const ocrProp = effectiveOCR(i);
   const ocrBkt = ocrProp>1.0?999:Math.ceil(ocrProp*10)*10||10;
@@ -389,7 +381,6 @@ function bindSliders(i0,i1,l0,l1,sMin,sMax,fmt){
   s0.addEventListener('input',()=>{let v=+s0.value;if(v>+s1.value){s1.value=v;sMax(v);e1.textContent=fmt(v,'max');}sMin(v);e0.textContent=fmt(v,'min');scheduleRender();});
   s1.addEventListener('input',()=>{let v=+s1.value;if(v<+s0.value){s0.value=v;sMin(v);e0.textContent=fmt(v,'min');}sMax(v);e1.textContent=fmt(v,'max');scheduleRender();});
 }
-bindSliders('tv0','tv1','tv0l','tv1l',v=>tvMin=v,v=>tvMax=v,(v,e)=>e==='max'&&v>=99?'Max':fmt$(v/100*MAX_TV));
 // CTI chip bindings
 document.querySelectorAll('#ocrChips .bchip').forEach(b=>b.addEventListener('click',()=>{
   const bkt=+b.dataset.ocr;
@@ -402,13 +393,10 @@ document.getElementById('exN').addEventListener('click',function(){showExN=!show
 
 document.getElementById('reset').addEventListener('click',()=>{
   activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
-  tvMin=0;tvMax=100;showExY=true;showExN=true;
+  showExY=true;showExN=true;
   document.querySelectorAll('.chip').forEach(b=>b.classList.add('on'));
   document.querySelectorAll('.bchip').forEach(b=>b.classList.add('on'));
-  document.getElementById('tv0').value=0; document.getElementById('tv1').value=100;
   document.getElementById('ocr0').value=0; document.getElementById('ocr1').value=200;
-  document.getElementById('tv0l').textContent='$0';
-  document.getElementById('tv1l').textContent='Max';
   document.getElementById('ocr0l').textContent='0%';
   document.getElementById('ocr1l').textContent='200%+';
   document.getElementById('exY').classList.add('on');
