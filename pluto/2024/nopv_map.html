@@ -127,9 +127,7 @@ function lerp3(t,stops){
   return `rgb(${r},${g},${bl})`;
 }
 
-function getColor(i){
-  return lerp3(effectiveOCR(i)/1.5, OCR_STOPS);
-}
+function getColor(i){ return lerp3(effectiveOCR(i)/1.5, OCR_STOPS); }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
@@ -261,35 +259,6 @@ function popupHTML(i) {
 
 function passesFilter(i){ return true; }
 
-let renderTimer = null;
-function scheduleRender(){ clearTimeout(renderTimer); renderTimer=setTimeout(doRender,0); }
-
-function doRender(){
-  layerGroup.clearLayers();
-  let count=0, ocrSum=0, visUnits=0;
-  for(let i=0;i<D.n;i++){
-    if(!passesFilter(i)) continue;
-    count++;
-    ocrSum+=effectiveOCR(i);
-    visUnits+=D.ru[i]||0;
-    const r = D.tv[i]>5e6?7:D.tv[i]>1e6?5:3.5;
-    const circle = L.circleMarker([D.lat[i],D.lon[i]],{
-      renderer,
-      radius: r,
-      fillColor: getColor(i),
-      fillOpacity: 0.85,
-      color: 'rgba(0,0,0,0.35)',
-      weight: 0.5,
-    });
-    const idx=i;
-    circle.bindPopup(()=>popupHTML(idx), {maxWidth:300, className:'nopv-popup'});
-    layerGroup.addLayer(circle);
-  }
-  document.getElementById('cnt').textContent=count.toLocaleString();
-  document.getElementById('visunits').textContent=visUnits.toLocaleString();
-  document.getElementById('ocravg').textContent=count?(ocrSum/count*100).toFixed(1)+'%':'&mdash;';
-}
-
 // ── UI BINDINGS ───────────────────────────────────────────────────────────
 document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
 
@@ -306,15 +275,6 @@ function bindSliders(i0,i1,l0,l1,sMin,sMax,fmt){
   s0.addEventListener('input',()=>{let v=+s0.value;if(v>+s1.value){s1.value=v;sMax(v);e1.textContent=fmt(v,'max');}sMin(v);e0.textContent=fmt(v,'min');scheduleRender();});
   s1.addEventListener('input',()=>{let v=+s1.value;if(v<+s0.value){s0.value=v;sMin(v);e0.textContent=fmt(v,'min');}sMax(v);e1.textContent=fmt(v,'max');scheduleRender();});
 }
-bindSliders('tv0','tv1','tv0l','tv1l',v=>tvMin=v,v=>tvMax=v,(v,e)=>e==='max'&&v>=99?'Max':fmt$(v/100*MAX_TV));
-// CTI chip bindings
-document.querySelectorAll('#ocrChips .bchip').forEach(b=>b.addEventListener('click',()=>{
-  const bkt=+b.dataset.ocr;
-  activeOcrBuckets.has(bkt)?(activeOcrBuckets.delete(bkt),b.classList.remove('on')):(activeOcrBuckets.add(bkt),b.classList.add('on'));
-  scheduleRender();
-}));
-document.getElementById('exY').addEventListener('click',function(){showExY=!showExY;this.classList.toggle('on',showExY);scheduleRender();});
-document.getElementById('exN').addEventListener('click',function(){showExN=!showExN;this.classList.toggle('on',showExN);scheduleRender();});
 
 
 
