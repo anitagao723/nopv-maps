@@ -44,12 +44,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 .tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s}
 .tog.on::after{transform:translateX(16px)}
 .tlbl{font-size:10px;color:var(--text)}
-.mbts{display:flex;flex-direction:column;gap:4px}
-.mbt{display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:left}
-.mbt.on{border-color:var(--accent);color:var(--text)}
+
+
+
 .msw{width:28px;height:7px;border-radius:2px;flex-shrink:0}
-.notice{background:rgba(232,255,71,.07);border:1px solid rgba(232,255,71,.18);border-radius:4px;padding:9px;font-size:9px;color:rgba(232,255,71,.75);line-height:1.6}
-.notice strong{color:var(--accent);display:block;margin-bottom:2px}
+
+
 #legend{padding:11px 14px;border-top:1px solid var(--border)}
 .lt{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 .lb{height:7px;border-radius:2px;margin-bottom:4px}
@@ -170,18 +170,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
       <div class="trow"><button class="tog on" id="exY"></button><div class="tlbl">Show Exempt (Y)</div></div>
       <div class="trow" style="margin-top:5px"><button class="tog on" id="exN"></button><div class="tlbl">Show Non-Exempt (N)</div></div>
     </div>
-    <div class="fg">
-      <div class="fl">Color By</div>
-      <div class="mbts">
-        <button class="mbt" data-m="bor"><div class="msw" style="background:linear-gradient(90deg,#e8ff47,#47c5ff,#ff8c47,#c847ff)"></div>Borough</button>
-        <button class="mbt on" data-m="ocr"><div class="msw" style="background:linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)"></div>Cost-to-Income Ratio</button>
-        <button class="mbt" data-m="tv"><div class="msw" style="background:linear-gradient(90deg,#47c5ff,#c847ff)"></div>Taxable Value</button>
-      </div>
-    </div>
-    <div class="notice">
-      <strong>&#9888; Approximate Coordinates</strong>
-      Dots placed within borough bounds via Block/Lot. Run geocode_pluto.py with real PLUTO CSV for exact parcel locations.
-    </div>
+
   </div>
   <div id="legend">
     <div class="lt" id="ltitle">Cost-to-Income Ratio</div>
@@ -210,12 +199,8 @@ function lerp3(t,stops){
   return `rgb(${r},${g},${bl})`;
 }
 
-let colorMode='ocr';
 function getColor(i){
-  if(colorMode==='bor') return BOR_C[D.bor[i]]||'#888';
-  if(colorMode==='ocr') return lerp3(effectiveOCR(i)/1.5, OCR_STOPS);
-  if(colorMode==='tv')  return lerp3(Math.log1p(D.tv[i])/Math.log1p(MAX_TV), TV_STOPS);
-  return '#888';
+  return lerp3(effectiveOCR(i)/1.5, OCR_STOPS);
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
@@ -414,21 +399,7 @@ document.querySelectorAll('#ocrChips .bchip').forEach(b=>b.addEventListener('cli
 document.getElementById('exY').addEventListener('click',function(){showExY=!showExY;this.classList.toggle('on',showExY);scheduleRender();});
 document.getElementById('exN').addEventListener('click',function(){showExN=!showExN;this.classList.toggle('on',showExN);scheduleRender();});
 
-const LGND={
-  bor:{t:'Borough',b:'linear-gradient(90deg,#e8ff47,#47c5ff,#ff8c47,#c847ff,#47ffbd)',x:['Mhtn','Bx','Bk','Qns','SI']},
-  ocr:{t:'Cost-to-Income Ratio',b:'linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)',x:['0%','75%','150%+']},
-  tv: {t:'Taxable Value',b:'linear-gradient(90deg,#47c5ff,#c847ff)',x:['$0','Mid','$718M']},
-};
-document.querySelectorAll('.mbt').forEach(b=>b.addEventListener('click',()=>{
-  colorMode=b.dataset.m;
-  document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');
-  const cfg=LGND[colorMode];
-  document.getElementById('ltitle').textContent=cfg.t;
-  document.getElementById('lbar').style.background=cfg.b;
-  document.getElementById('ltix').innerHTML=cfg.x.map(t=>`<span>${t}</span>`).join('');
-  scheduleRender();
-}));
+
 document.getElementById('reset').addEventListener('click',()=>{
   activeBors=new Set(['Manhattan','Bronx','Brooklyn','Queens','Staten Island']);
   tvMin=0;tvMax=100;showExY=true;showExN=true;
