@@ -115,10 +115,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 const MAX_TV = 718000000;
 
 // ── COLORS ────────────────────────────────────────────────────────────────
-const BOR_C={Manhattan:'#e8ff47',Bronx:'#47c5ff',Brooklyn:'#ff8c47',Queens:'#c847ff','Staten Island':'#47ffbd'};
-const TC_C={'1':'#ffd147','2':'#47c5ff','2A':'#47ff8c','2B':'#ff8c47','2C':'#c847ff','4':'#ff4757'};
 const OCR_STOPS=[[71,255,140],[255,209,71],[255,71,87]];
-const TV_STOPS=[[71,197,255],[200,71,255]];
 
 function lerp3(t,stops){
   t=Math.max(0,Math.min(1,t));
@@ -127,24 +124,14 @@ function lerp3(t,stops){
   return `rgb(${r},${g},${bl})`;
 }
 
-function getColor(i){ return lerp3(effectiveOCR(i)/1.5, OCR_STOPS); }
+function getColor(i){ return lerp3(D.ocr[i]/1.5, OCR_STOPS); }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 let D=null;
 
-// ── Expense Adjustment State ──────────────────────────────────────────────
-// adjMode: 1=none, 2=floor, 3=fixed  (can combine 2+3)
-
-
-
-function effectiveOCR(i) { return D.ocr[i]; }
-
 function fmt$(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+(v/1e3).toFixed(0)+'K';return'$'+v}
 
 // ── LEAFLET MAP ───────────────────────────────────────────────────────────
-// Use Leaflet's native canvas renderer — no external WebGL library needed.
-// All dots are Leaflet CircleMarkers drawn on a canvas layer.
-// Pan, zoom, click all work natively.
 const renderer = L.canvas({ padding: 0.5 });
 const map = L.map('map', { center:[40.705,-73.97], zoom:11, zoomControl:true });
 
@@ -157,12 +144,9 @@ L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}
 let layerGroup = L.layerGroup().addTo(map);
 
 function popupHTML(i) {
-  const eff = effectiveOCR(i);
-  const orig = D.ocr[i];
-  const ocrPct = eff.toFixed(4)!==orig.toFixed(4) ?
-    (eff*100).toFixed(1)+'% <span style="color:#64748b;font-size:10px">(orig: '+(orig*100).toFixed(1)+'%)</span>' :
-    (eff*100).toFixed(1)+'%';
-  const ocrCls = eff>0.6?'hi':eff<0.35?'lo':'';
+  const ocr = D.ocr[i];
+  const ocrPct = (ocr*100).toFixed(1)+'%';
+  const ocrCls = ocr>0.6?'hi':ocr<0.35?'lo':'';
   return `<div class="p-addr">${D.addr[i]}</div>
 <div class="p-sub">${D.bor[i]} &middot; ${D.bc[i]}</div>
 <div class="p-grid">
@@ -180,26 +164,30 @@ function popupHTML(i) {
 </div>`;
 }
 
-function passesFilter(i){ return true; }
+// ── RENDER ────────────────────────────────────────────────────────────────
+let renderTimer=null;
+function scheduleRender(){ clearTimeout(renderTimer); renderTimer=setTimeout(doRender,30); }
 
-// ── UI BINDINGS ───────────────────────────────────────────────────────────
-document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
-
-  scheduleRender();
-}));
-document.querySelectorAll('.bchip').forEach(b=>b.addEventListener('click',()=>{
-  const bor=b.dataset.b;
-  activeBors.has(bor)?(activeBors.delete(bor),b.classList.remove('on')):(activeBors.add(bor),b.classList.add('on'));
-  scheduleRender();
-}));
-function bindSliders(i0,i1,l0,l1,sMin,sMax,fmt){
-  const s0=document.getElementById(i0),s1=document.getElementById(i1);
-  const e0=document.getElementById(l0),e1=document.getElementById(l1);
-  s0.addEventListener('input',()=>{let v=+s0.value;if(v>+s1.value){s1.value=v;sMax(v);e1.textContent=fmt(v,'max');}sMin(v);e0.textContent=fmt(v,'min');scheduleRender();});
-  s1.addEventListener('input',()=>{let v=+s1.value;if(v<+s0.value){s0.value=v;sMin(v);e0.textContent=fmt(v,'min');}sMax(v);e1.textContent=fmt(v,'max');scheduleRender();});
+function doRender(){
+  layerGroup.clearLayers();
+  if(!D) return;
+  let count=0, ocrSum=0, visUnits=0;
+  for(let i=0;i<D.n;i++){
+    count++;
+    ocrSum+=D.ocr[i];
+    visUnits+=(D.ru[i]||0);
+    const color=getColor(i);
+    const m=L.circleMarker([D.lat[i],D.lon[i]],{
+      radius:4, color:color, fillColor:color,
+      fillOpacity:0.85, weight:0, renderer
+    });
+    m.bindPopup(popupHTML(i),{maxWidth:280});
+    layerGroup.addLayer(m);
+  }
+  document.getElementById('cnt').textContent=count.toLocaleString();
+  document.getElementById('visunits').textContent=visUnits.toLocaleString();
+  document.getElementById('ocravg').textContent=count?(ocrSum/count*100).toFixed(1)+'%':'&mdash;';
 }
-
-
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 window.addEventListener('load', async ()=>{
