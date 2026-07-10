@@ -136,6 +136,14 @@ const METRIC_CFG  = {
 };
 const MKEYS = Object.keys(METRIC_CFG);
 let metric = MKEYS[0];
+let curMetric = 'ocr';
+let cumulMode = false;
+function setCumulMode(on){
+  cumulMode=on;
+  document.getElementById('modeAbs').classList.toggle('on',!on);
+  document.getElementById('modeCum').classList.toggle('on',on);
+  buildList();
+}
 let AGG    = {};   // district_key -> stat object  (pre-computed in Python)
 let selDist = null;
 let distLayer = null;
@@ -179,6 +187,10 @@ function showPanel(dk,props){
   const party=PARTY_FIELD?(props[PARTY_FIELD]||''):'';
   const pe=document.getElementById('dp-party');pe.textContent=party;
   pe.className='dp-party '+(party.includes('Democrat')?'party-D':party.includes('Republican')?'party-R':'party-I');
+  // Update avg CTI
+  const ctiVal=AGG[dk]?AGG[dk].ocr:undefined;
+  const ctiEl=document.getElementById('dp-cti');
+  if(ctiEl)ctiEl.textContent=ctiVal!==undefined?(ctiVal*100).toFixed(1)+'%':'—';
   const grid=document.getElementById('dp-grid');grid.innerHTML='';
   const agg=AGG[dk]||{};
   [['count','Properties'],['exempt','Exempt Props'],...MKEYS.filter(k=>k!=='count').map(k=>[k,METRIC_CFG[k].label])].forEach(([k,lbl])=>{
@@ -299,10 +311,10 @@ function initLayer(){
 }
 
 document.querySelectorAll('.mbt').forEach(b=>b.addEventListener('click',()=>{
-  metric=b.dataset.metric;
+  curMetric=b.dataset.metric;
   document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-  document.getElementById('ltitle').textContent=METRIC_CFG[metric].label;
-  document.getElementById('lbar').style.background=METRIC_CFG[metric].grad;
+  document.getElementById('ltitle').textContent=METRIC_CFG[curMetric].label;
+  document.getElementById('lbar').style.background=METRIC_CFG[curMetric].grad;
   refreshLayer();buildList();
 }));
 
