@@ -12,15 +12,15 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:"DM Mono",monospace;height:100vh;display:flex;overflow:hidden}
-#sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#sidebar::-webkit-scrollbar{width:4px}#sidebar::-webkit-scrollbar-track{background:transparent}#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 #hdr{padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .tag{font-size:9px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:4px}
 h1{font-family:"Syne",sans-serif;font-size:16px;font-weight:800;line-height:1.2;color:#fff}
 h1 span{color:var(--accent)}
 .sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
 #dist-panel{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
-#filters{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-#rankings{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;border-top:1px solid var(--border)}
+#filters{flex-shrink:0}
+#rankings{border-top:1px solid var(--border);flex-shrink:0}
 .dp-lbl{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .dp-num{font-family:"Syne",sans-serif;font-size:22px;font-weight:800;color:var(--accent);line-height:1}
 .dp-name{font-size:11px;color:#fff;margin-top:2px}
@@ -39,7 +39,7 @@ h1 span{color:var(--accent)}
 .bchip{flex:1;padding:6px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:center}
 .bchip.on{border-color:var(--accent);color:var(--text)}
 .msw{width:26px;height:6px;border-radius:2px;flex-shrink:0}
-#dist-list{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#dist-list::-webkit-scrollbar{width:3px}#dist-list::-webkit-scrollbar-track{background:transparent}#dist-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#dist-list{}
 
 .dl-item{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;gap:7px}
 .dl-item:hover{background:rgba(255,255,255,.04)}
@@ -106,7 +106,7 @@ h1 span{color:var(--accent)}
     </div>
   </div>
   <div id="metric-controls">
-    <div class="fl">Color Districts By</div>
+    <div class="fl">District Colors</div>
     <div class="mbts">
         <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Avg Cost-to-Income</button>
         <button class="mbt" data-metric="ru"><div class="msw" style="background:linear-gradient(90deg,#c847ff,#e8ff47)"></div>Total Res. Units</button>
@@ -117,12 +117,6 @@ h1 span{color:var(--accent)}
     <div style="display:flex;gap:6px">
       <button class="bchip on" id="modeContinuous" onclick="setColorMode('continuous')">Continuous</button>
       <button class="bchip"    id="modeDiscrete" onclick="setColorMode('discrete')">Discrete</button>
-    </div>
-    <div id="discreteOptions" style="display:none;margin-top:6px">
-      <div style="display:flex;gap:6px">
-        <button class="bchip on" id="methodStd" onclick="setDiscreteMethod('stddev')">Std. Deviation</button>
-        <button class="bchip"    id="methodPct" onclick="setDiscreteMethod('percentile')">Fixed Percentiles</button>
-      </div>
     </div>
   </div>
   <div id="legend">
@@ -162,25 +156,13 @@ const METRIC_CFG  = {
 const MKEYS = Object.keys(METRIC_CFG);
 let curMetric = 'ocr';
 let colorMode = 'continuous';
-let discreteMethod = 'stddev';
 
-function statsFor(k){
-  const vals=Object.values(AGG).map(d=>d[k]||0);
-  const n=vals.length||1;
-  const mean=vals.reduce((a,b)=>a+b,0)/n;
-  const sd=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)*(b-mean),0)/n);
-  return {vals,mean,sd};
-}
 function niceNumber(x){
   if(x<=0) return 1;
   const exp=Math.floor(Math.log10(x));
   const f=x/Math.pow(10,exp);
   let nf; if(f<1.5) nf=1; else if(f<3) nf=2; else if(f<7) nf=5; else nf=10;
   return nf*Math.pow(10,exp);
-}
-// Fixed 0.5σ bands from -2σ to +2σ (8 edges -> 9 buckets)
-function stdEdges(){
-  return [-2,-1.5,-1,-0.5,0,0.5,1,1.5,2];
 }
 // Fixed value bands: percentage metrics use 0-100% in 10% steps (matches
 // standard CTI legend); other metrics use a "nice" round step scaled to
@@ -204,33 +186,17 @@ function renderDiscreteLegend(){
   const cfg=METRIC_CFG[curMetric];
   const el=document.getElementById('discLegend');
   const rows=[];
-  if(discreteMethod==='stddev'){
-    const edges=stdEdges();
-    edges.forEach((e,i)=>{
-      rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${e>0?'+':''}${e}σ`});
-    });
-    rows.push({color:lerp3(1,cfg.stops),label:`> +${edges[edges.length-1]}σ`});
-  } else {
-    const {edges}=fixedEdges(curMetric);
-    edges.forEach((e,i)=>{
-      rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${cfg.fmt(e)}`});
-    });
-    rows.push({color:lerp3(1,cfg.stops),label:`${cfg.fmt(edges[edges.length-1])}+`});
-  }
+  const {edges}=fixedEdges(curMetric);
+  edges.forEach((e,i)=>{
+    rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${cfg.fmt(e)}`});
+  });
+  rows.push({color:lerp3(1,cfg.stops),label:`${cfg.fmt(edges[edges.length-1])}+`});
   el.innerHTML=rows.map(r=>`<div class="disc-row"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
-}
-function setDiscreteMethod(m){
-  discreteMethod=m;
-  document.getElementById('methodStd').classList.toggle('on',m==='stddev');
-  document.getElementById('methodPct').classList.toggle('on',m==='percentile');
-  renderDiscreteLegend();
-  refreshLayer();
 }
 function setColorMode(mode){
   colorMode=mode;
   document.getElementById('modeContinuous').classList.toggle('on',mode==='continuous');
   document.getElementById('modeDiscrete').classList.toggle('on',mode==='discrete');
-  document.getElementById('discreteOptions').style.display=mode==='discrete'?'block':'none';
   document.getElementById('lbar').style.display=mode==='continuous'?'block':'none';
   document.getElementById('ltx').style.display=mode==='continuous'?'flex':'none';
   document.getElementById('discLegend').classList.toggle('show',mode==='discrete');
@@ -258,14 +224,8 @@ function distColor(dk){
   const mn=Math.min(...vals),mx=Math.max(...vals);
   const v=(AGG[dk]||{})[curMetric]||0;
   if(colorMode==='discrete'){
-    if(discreteMethod==='stddev'){
-      const {mean,sd}=statsFor(curMetric);
-      const z=sd?(v-mean)/sd:0;
-      return lerp3(bucketT(stdEdges(),z),cfg.stops);
-    } else {
-      const {edges}=fixedEdges(curMetric);
-      return lerp3(bucketT(edges,v),cfg.stops);
-    }
+    const {edges}=fixedEdges(curMetric);
+    return lerp3(bucketT(edges,v),cfg.stops);
   }
   return lerp3(mx===mn?0.5:(v-mn)/(mx-mn),cfg.stops);
 }
