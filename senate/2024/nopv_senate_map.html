@@ -19,6 +19,8 @@ h1{font-family:"Syne",sans-serif;font-size:16px;font-weight:800;line-height:1.2;
 h1 span{color:var(--accent)}
 .sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
 #dist-panel{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+#filters{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+#rankings{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;border-top:1px solid var(--border)}
 .dp-lbl{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .dp-num{font-family:"Syne",sans-serif;font-size:22px;font-weight:800;color:var(--accent);line-height:1}
 .dp-name{font-size:11px;color:#fff;margin-top:2px}
@@ -37,7 +39,7 @@ h1 span{color:var(--accent)}
 .bchip{flex:1;padding:6px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:center}
 .bchip.on{border-color:var(--accent);color:var(--text)}
 .msw{width:26px;height:6px;border-radius:2px;flex-shrink:0}
-#dist-list{max-height:320px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#dist-list::-webkit-scrollbar{width:3px}#dist-list::-webkit-scrollbar-track{background:transparent}#dist-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#dist-list{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#dist-list::-webkit-scrollbar{width:3px}#dist-list::-webkit-scrollbar-track{background:transparent}#dist-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
 .dl-item{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;gap:7px}
 .dl-item:hover{background:rgba(255,255,255,.04)}
@@ -110,7 +112,7 @@ h1 span{color:var(--accent)}
         <button class="mbt" data-metric="ru"><div class="msw" style="background:linear-gradient(90deg,#c847ff,#e8ff47)"></div>Total Res. Units</button>
     </div>
   </div>
-  <div style="padding:8px 14px;border-bottom:1px solid var(--border)">
+  <div style="padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
     <div class="fl">Display Scale</div>
     <div style="display:flex;gap:6px">
       <button class="bchip on" id="modeContinuous" onclick="setColorMode('continuous')">Continuous</button>
@@ -123,19 +125,21 @@ h1 span{color:var(--accent)}
       </div>
     </div>
   </div>
-  <div class="fl" style="padding:8px 14px 0">District Rankings</div>
-  <div class="dl-header" id="dl-header">
-    <div class="dl-num">Dist.</div>
-    <div class="dl-name">Representative</div>
-    <div class="dl-bar-wrap"></div>
-    <div class="dl-val" id="dlh-val"></div>
-  </div>
-  <div id="dist-list"></div>
   <div id="legend">
     <div class="lt" id="ltitle"></div>
     <div class="lb" id="lbar"></div>
     <div class="ltx" id="ltx"><span>Less</span><span>More</span></div>
     <div class="disc-legend" id="discLegend"></div>
+  </div>
+  <div id="rankings">
+    <div class="fl" style="padding:8px 14px 0;flex-shrink:0">District Rankings</div>
+    <div class="dl-header" id="dl-header" style="flex-shrink:0">
+      <div class="dl-num">Dist.</div>
+      <div class="dl-name">Representative</div>
+      <div class="dl-bar-wrap"></div>
+      <div class="dl-val" id="dlh-val"></div>
+    </div>
+    <div id="dist-list"></div>
   </div>
   </div><!-- /#filters -->
 </div>
