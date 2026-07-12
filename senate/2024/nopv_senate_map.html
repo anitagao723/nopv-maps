@@ -155,7 +155,7 @@ const METRIC_CFG  = {
 const MKEYS = Object.keys(METRIC_CFG);
 let curMetric = 'ocr';
 let colorMode = 'continuous';
-let activeFilterBucket = null;
+let activeFilterBuckets = new Set();
 
 function niceNumber(x){
   if(x<=0) return 1;
@@ -183,7 +183,8 @@ function bucketIndex(edges,v){
   return idx;
 }
 function toggleBucketFilter(idx){
-  activeFilterBucket=(activeFilterBucket===idx)?null:idx;
+  if(activeFilterBuckets.has(idx)) activeFilterBuckets.delete(idx);
+  else activeFilterBuckets.add(idx);
   renderDiscreteLegend();
   refreshLayer();
 }
@@ -196,11 +197,11 @@ function renderDiscreteLegend(){
     rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${cfg.fmt(e)}`});
   });
   rows.push({color:lerp3(1,cfg.stops),label:`${cfg.fmt(edges[edges.length-1])}+`});
-  el.innerHTML=rows.map((r,i)=>`<div class="disc-row${activeFilterBucket===i?' active':''}" onclick="toggleBucketFilter(${i})"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
+  el.innerHTML=rows.map((r,i)=>`<div class="disc-row${activeFilterBuckets.has(i)?' active':''}" onclick="toggleBucketFilter(${i})"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
 }
 function setColorMode(mode){
   colorMode=mode;
-  activeFilterBucket=null;
+  activeFilterBuckets.clear();
   document.getElementById('modeContinuous').classList.toggle('on',mode==='continuous');
   document.getElementById('modeDiscrete').classList.toggle('on',mode==='discrete');
   document.getElementById('lbar').style.display=mode==='continuous'?'block':'none';
@@ -232,7 +233,7 @@ function distColor(dk){
   if(colorMode==='discrete'){
     const {edges}=fixedEdges(curMetric);
     const idx=bucketIndex(edges,v);
-    if(activeFilterBucket!==null&&idx!==activeFilterBucket) return 'rgba(100,116,139,0.12)';
+    if(activeFilterBuckets.size>0&&!activeFilterBuckets.has(idx)) return 'rgba(100,116,139,0.12)';
     return lerp3(idx/edges.length,cfg.stops);
   }
   return lerp3(mx===mn?0.5:(v-mn)/(mx-mn),cfg.stops);
@@ -353,7 +354,7 @@ function initLayer(){
 
 document.querySelectorAll('.mbt').forEach(b=>b.addEventListener('click',()=>{
   curMetric=b.dataset.metric;
-  activeFilterBucket=null;
+  activeFilterBuckets.clear();
   document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   document.getElementById('ltitle').textContent=METRIC_CFG[curMetric].label;
   document.getElementById('lbar').style.background=METRIC_CFG[curMetric].grad;
