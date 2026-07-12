@@ -55,7 +55,9 @@ h1 span{color:var(--accent)}
 .ltx{display:flex;justify-content:space-between;font-size:9px;color:var(--muted)}
 .disc-legend{display:none;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .disc-legend.show{display:flex}
-.disc-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--accent2);border-radius:4px;background:rgba(13,15,20,.6)}
+.disc-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--accent2);border-radius:4px;background:rgba(13,15,20,.6);cursor:pointer;transition:all .15s}
+.disc-row:hover{background:rgba(71,197,255,.12)}
+.disc-row.active{border-color:var(--accent);background:rgba(232,255,71,.1)}
 .disc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .disc-label{font-size:11px;color:var(--accent2);letter-spacing:.03em;font-weight:500}
 #map{flex:1}
@@ -153,6 +155,7 @@ const METRIC_CFG  = {
 const MKEYS = Object.keys(METRIC_CFG);
 let curMetric = 'ocr';
 let colorMode = 'continuous';
+let activeFilterBucket = null;
 
 function niceNumber(x){
   if(x<=0) return 1;
@@ -174,10 +177,15 @@ function fixedEdges(k){
   const edges=[]; for(let i=1;i<=10;i++) edges.push(step*i);
   return {edges};
 }
-function bucketT(edges,v){
+function bucketIndex(edges,v){
   let idx=edges.findIndex(e=>v<=e);
   if(idx===-1) idx=edges.length;
-  return idx/edges.length;
+  return idx;
+}
+function toggleBucketFilter(idx){
+  activeFilterBucket=(activeFilterBucket===idx)?null:idx;
+  renderDiscreteLegend();
+  refreshLayer();
 }
 function renderDiscreteLegend(){
   const cfg=METRIC_CFG[curMetric];
@@ -188,10 +196,11 @@ function renderDiscreteLegend(){
     rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${cfg.fmt(e)}`});
   });
   rows.push({color:lerp3(1,cfg.stops),label:`${cfg.fmt(edges[edges.length-1])}+`});
-  el.innerHTML=rows.map(r=>`<div class="disc-row"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
+  el.innerHTML=rows.map((r,i)=>`<div class="disc-row${activeFilterBucket===i?' active':''}" onclick="toggleBucketFilter(${i})"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
 }
 function setColorMode(mode){
   colorMode=mode;
+  activeFilterBucket=null;
   document.getElementById('modeContinuous').classList.toggle('on',mode==='continuous');
   document.getElementById('modeDiscrete').classList.toggle('on',mode==='discrete');
   document.getElementById('lbar').style.display=mode==='continuous'?'block':'none';
@@ -222,7 +231,9 @@ function distColor(dk){
   const v=(AGG[dk]||{})[curMetric]||0;
   if(colorMode==='discrete'){
     const {edges}=fixedEdges(curMetric);
-    return lerp3(bucketT(edges,v),cfg.stops);
+    const idx=bucketIndex(edges,v);
+    if(activeFilterBucket!==null&&idx!==activeFilterBucket) return 'rgba(100,116,139,0.12)';
+    return lerp3(idx/edges.length,cfg.stops);
   }
   return lerp3(mx===mn?0.5:(v-mn)/(mx-mn),cfg.stops);
 }
@@ -290,7 +301,7 @@ function buildList(){
     const name=NAME_FIELD&&feat?(feat.properties[NAME_FIELD]||''):'';
     const item=document.createElement('div');
     item.className='dl-item'+(String(dk)===String(selDist)?' active':'');
-    item.innerHTML=`<div class="dl-num">${dk}</div><div class="dl-name">${name}</div><div class="dl-val">${cfg.fmt(v)}</div>`;
+    item.innerHTML=`<div class="dl-num">${dk}</div><div class="dl-name">${name}</div><div class="dl-val" style="color:${distColor(dk)}">${cfg.fmt(v)}</div>`;
     item.addEventListener('click',()=>{
       selDist=dk;
       const feat2=GJ.features.find(f=>String(f.properties[DIST_FIELD])===dk);
@@ -342,6 +353,7 @@ function initLayer(){
 
 document.querySelectorAll('.mbt').forEach(b=>b.addEventListener('click',()=>{
   curMetric=b.dataset.metric;
+  activeFilterBucket=null;
   document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   document.getElementById('ltitle').textContent=METRIC_CFG[curMetric].label;
   document.getElementById('lbar').style.background=METRIC_CFG[curMetric].grad;
