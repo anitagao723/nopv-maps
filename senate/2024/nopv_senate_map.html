@@ -228,15 +228,15 @@ function distColor(dk){
   const cfg=METRIC_CFG[curMetric];
   const vals=Object.values(AGG).map(d=>d[curMetric]||0);
   if(!vals.length) return 'rgba(71,197,255,0.15)';
-  const mn=Math.min(...vals),mx=Math.max(...vals);
   const v=(AGG[dk]||{})[curMetric]||0;
+  const {edges}=fixedEdges(curMetric);
   if(colorMode==='discrete'){
-    const {edges}=fixedEdges(curMetric);
     const idx=bucketIndex(edges,v);
     if(activeFilterBuckets.size>0&&!activeFilterBuckets.has(idx)) return 'rgba(100,116,139,0.12)';
     return lerp3(idx/edges.length,cfg.stops);
   }
-  return lerp3(mx===mn?0.5:(v-mn)/(mx-mn),cfg.stops);
+  const scaleMax=edges[edges.length-1]||1;
+  return lerp3(v/scaleMax,cfg.stops);
 }
 function distStyle(feat){
   const dk=String(feat.properties[DIST_FIELD]);
