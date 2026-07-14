@@ -427,9 +427,14 @@ async function switchChamber(name){
     AGG = {};
   }
 
+  map.closePopup();
   if(distLayer){ map.removeLayer(distLayer); distLayer=null; }
   initLayer();
   buildList();
+  try{
+    const b = distLayer.getBounds();
+    if(b && b.isValid()) map.fitBounds(b,{padding:[20,20]});
+  }catch(e){ /* ignore — falls back to whatever view was already set */ }
 }
 
 window.addEventListener('load',async()=>{
