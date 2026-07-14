@@ -12,13 +12,15 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:"DM Mono",monospace;height:100vh;display:flex;overflow:hidden}
-#sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#sidebar{width:var(--w);min-width:var(--w);background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#sidebar::-webkit-scrollbar{width:4px}#sidebar::-webkit-scrollbar-track{background:transparent}#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 #hdr{padding:16px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .tag{font-size:9px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase;margin-bottom:4px}
 h1{font-family:"Syne",sans-serif;font-size:16px;font-weight:800;line-height:1.2;color:#fff}
 h1 span{color:var(--accent)}
 .sub{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
 #dist-panel{padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+#filters{flex-shrink:0}
+#rankings{border-top:1px solid var(--border);flex-shrink:0}
 .dp-lbl{font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .dp-num{font-family:"Syne",sans-serif;font-size:22px;font-weight:800;color:var(--accent);line-height:1}
 .dp-name{font-size:11px;color:#fff;margin-top:2px}
@@ -37,15 +39,13 @@ h1 span{color:var(--accent)}
 .bchip{flex:1;padding:6px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:center}
 .bchip.on{border-color:var(--accent);color:var(--text)}
 .msw{width:26px;height:6px;border-radius:2px;flex-shrink:0}
-#dist-list{max-height:320px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}#dist-list::-webkit-scrollbar{width:3px}#dist-list::-webkit-scrollbar-track{background:transparent}#dist-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+#dist-list{}
 
 .dl-item{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;gap:7px}
 .dl-item:hover{background:rgba(255,255,255,.04)}
 .dl-item.active{background:rgba(232,255,71,.07);border-left:2px solid var(--accent)}
 .dl-num{font-family:"Syne",sans-serif;font-weight:800;font-size:12px;color:var(--accent);min-width:26px}
 .dl-name{font-size:10px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dl-bar-wrap{width:44px;height:4px;background:var(--border);border-radius:2px;flex-shrink:0}
-.dl-bar{height:100%;border-radius:2px;transition:width .3s}
 .dl-val{font-size:10px;color:var(--muted);min-width:42px;text-align:right}
 .dl-header{display:flex;align-items:center;padding:6px 14px;gap:7px;border-bottom:1px solid var(--border)}
 .dl-header .dl-num,.dl-header .dl-name,.dl-header .dl-val{font-family:"DM Mono",monospace;font-size:8px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -55,7 +55,9 @@ h1 span{color:var(--accent)}
 .ltx{display:flex;justify-content:space-between;font-size:9px;color:var(--muted)}
 .disc-legend{display:none;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .disc-legend.show{display:flex}
-.disc-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--accent2);border-radius:4px;background:rgba(13,15,20,.6)}
+.disc-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--accent2);border-radius:4px;background:rgba(13,15,20,.6);cursor:pointer;transition:all .15s}
+.disc-row:hover{background:rgba(71,197,255,.12)}
+.disc-row.active{border-color:var(--accent);background:rgba(232,255,71,.1)}
 .disc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .disc-label{font-size:11px;color:var(--accent2);letter-spacing:.03em;font-weight:500}
 #map{flex:1}
@@ -104,38 +106,33 @@ h1 span{color:var(--accent)}
     </div>
   </div>
   <div id="metric-controls">
-    <div class="fl">Color Districts By</div>
+    <div class="fl">District Colors</div>
     <div class="mbts">
         <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Avg Cost-to-Income</button>
         <button class="mbt" data-metric="ru"><div class="msw" style="background:linear-gradient(90deg,#c847ff,#e8ff47)"></div>Total Res. Units</button>
     </div>
   </div>
-  <div style="padding:8px 14px;border-bottom:1px solid var(--border)">
+  <div style="padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
     <div class="fl">Display Scale</div>
     <div style="display:flex;gap:6px">
       <button class="bchip on" id="modeContinuous" onclick="setColorMode('continuous')">Continuous</button>
       <button class="bchip"    id="modeDiscrete" onclick="setColorMode('discrete')">Discrete</button>
     </div>
-    <div id="discreteOptions" style="display:none;margin-top:6px">
-      <div style="display:flex;gap:6px">
-        <button class="bchip on" id="methodStd" onclick="setDiscreteMethod('stddev')">Std. Deviation</button>
-        <button class="bchip"    id="methodPct" onclick="setDiscreteMethod('percentile')">Fixed Percentiles</button>
-      </div>
-    </div>
   </div>
-  <div class="fl" style="padding:8px 14px 0">District Rankings</div>
-  <div class="dl-header" id="dl-header">
-    <div class="dl-num">Dist.</div>
-    <div class="dl-name">Representative</div>
-    <div class="dl-bar-wrap"></div>
-    <div class="dl-val" id="dlh-val"></div>
-  </div>
-  <div id="dist-list"></div>
   <div id="legend">
     <div class="lt" id="ltitle"></div>
     <div class="lb" id="lbar"></div>
     <div class="ltx" id="ltx"><span>Less</span><span>More</span></div>
     <div class="disc-legend" id="discLegend"></div>
+  </div>
+  <div id="rankings">
+    <div class="fl" style="padding:8px 14px 0;flex-shrink:0">District Rankings</div>
+    <div class="dl-header" id="dl-header" style="flex-shrink:0">
+      <div class="dl-num">Dist.</div>
+      <div class="dl-name">Representative</div>
+      <div class="dl-val" id="dlh-val"></div>
+    </div>
+    <div id="dist-list"></div>
   </div>
   </div><!-- /#filters -->
 </div>
@@ -158,25 +155,14 @@ const METRIC_CFG  = {
 const MKEYS = Object.keys(METRIC_CFG);
 let curMetric = 'ocr';
 let colorMode = 'continuous';
-let discreteMethod = 'stddev';
+let activeFilterBuckets = new Set();
 
-function statsFor(k){
-  const vals=Object.values(AGG).map(d=>d[k]||0);
-  const n=vals.length||1;
-  const mean=vals.reduce((a,b)=>a+b,0)/n;
-  const sd=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)*(b-mean),0)/n);
-  return {vals,mean,sd};
-}
 function niceNumber(x){
   if(x<=0) return 1;
   const exp=Math.floor(Math.log10(x));
   const f=x/Math.pow(10,exp);
   let nf; if(f<1.5) nf=1; else if(f<3) nf=2; else if(f<7) nf=5; else nf=10;
   return nf*Math.pow(10,exp);
-}
-// Fixed 0.5σ bands from -2σ to +2σ (8 edges -> 9 buckets)
-function stdEdges(){
-  return [-2,-1.5,-1,-0.5,0,0.5,1,1.5,2];
 }
 // Fixed value bands: percentage metrics use 0-100% in 10% steps (matches
 // standard CTI legend); other metrics use a "nice" round step scaled to
@@ -191,42 +177,33 @@ function fixedEdges(k){
   const edges=[]; for(let i=1;i<=10;i++) edges.push(step*i);
   return {edges};
 }
-function bucketT(edges,v){
+function bucketIndex(edges,v){
   let idx=edges.findIndex(e=>v<=e);
   if(idx===-1) idx=edges.length;
-  return idx/edges.length;
+  return idx;
+}
+function toggleBucketFilter(idx){
+  if(activeFilterBuckets.has(idx)) activeFilterBuckets.delete(idx);
+  else activeFilterBuckets.add(idx);
+  renderDiscreteLegend();
+  refreshLayer();
 }
 function renderDiscreteLegend(){
   const cfg=METRIC_CFG[curMetric];
   const el=document.getElementById('discLegend');
   const rows=[];
-  if(discreteMethod==='stddev'){
-    const edges=stdEdges();
-    edges.forEach((e,i)=>{
-      rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${e>0?'+':''}${e}σ`});
-    });
-    rows.push({color:lerp3(1,cfg.stops),label:`> +${edges[edges.length-1]}σ`});
-  } else {
-    const {edges}=fixedEdges(curMetric);
-    edges.forEach((e,i)=>{
-      rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${cfg.fmt(e)}`});
-    });
-    rows.push({color:lerp3(1,cfg.stops),label:`${cfg.fmt(edges[edges.length-1])}+`});
-  }
-  el.innerHTML=rows.map(r=>`<div class="disc-row"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
-}
-function setDiscreteMethod(m){
-  discreteMethod=m;
-  document.getElementById('methodStd').classList.toggle('on',m==='stddev');
-  document.getElementById('methodPct').classList.toggle('on',m==='percentile');
-  renderDiscreteLegend();
-  refreshLayer();
+  const {edges}=fixedEdges(curMetric);
+  edges.forEach((e,i)=>{
+    rows.push({color:lerp3(i/edges.length,cfg.stops),label:`≤ ${cfg.fmt(e)}`});
+  });
+  rows.push({color:lerp3(1,cfg.stops),label:`${cfg.fmt(edges[edges.length-1])}+`});
+  el.innerHTML=rows.map((r,i)=>`<div class="disc-row${activeFilterBuckets.has(i)?' active':''}" onclick="toggleBucketFilter(${i})"><div class="disc-dot" style="background:${r.color}"></div><div class="disc-label">${r.label}</div></div>`).join('');
 }
 function setColorMode(mode){
   colorMode=mode;
+  activeFilterBuckets.clear();
   document.getElementById('modeContinuous').classList.toggle('on',mode==='continuous');
   document.getElementById('modeDiscrete').classList.toggle('on',mode==='discrete');
-  document.getElementById('discreteOptions').style.display=mode==='discrete'?'block':'none';
   document.getElementById('lbar').style.display=mode==='continuous'?'block':'none';
   document.getElementById('ltx').style.display=mode==='continuous'?'flex':'none';
   document.getElementById('discLegend').classList.toggle('show',mode==='discrete');
@@ -251,19 +228,15 @@ function distColor(dk){
   const cfg=METRIC_CFG[curMetric];
   const vals=Object.values(AGG).map(d=>d[curMetric]||0);
   if(!vals.length) return 'rgba(71,197,255,0.15)';
-  const mn=Math.min(...vals),mx=Math.max(...vals);
   const v=(AGG[dk]||{})[curMetric]||0;
+  const {edges}=fixedEdges(curMetric);
   if(colorMode==='discrete'){
-    if(discreteMethod==='stddev'){
-      const {mean,sd}=statsFor(curMetric);
-      const z=sd?(v-mean)/sd:0;
-      return lerp3(bucketT(stdEdges(),z),cfg.stops);
-    } else {
-      const {edges}=fixedEdges(curMetric);
-      return lerp3(bucketT(edges,v),cfg.stops);
-    }
+    const idx=bucketIndex(edges,v);
+    if(activeFilterBuckets.size>0&&!activeFilterBuckets.has(idx)) return 'rgba(100,116,139,0.12)';
+    return lerp3(idx/edges.length,cfg.stops);
   }
-  return lerp3(mx===mn?0.5:(v-mn)/(mx-mn),cfg.stops);
+  const scaleMax=edges[edges.length-1]||1;
+  return lerp3(v/scaleMax,cfg.stops);
 }
 function distStyle(feat){
   const dk=String(feat.properties[DIST_FIELD]);
@@ -319,19 +292,17 @@ function buildList(){
   const entries=Object.entries(AGG).sort((a,b)=>(b[1][curMetric]||0)-(a[1][curMetric]||0));
   const displayEntries=entries.map(([dk,d])=>[dk,d,d[curMetric]||0]);
 
-  const maxV=Math.max(...displayEntries.map(([,,v])=>v||0))||1;
   const cfg=METRIC_CFG[curMetric];
   const SHOW=5;
   const visible=expanded?displayEntries:displayEntries.slice(0,SHOW);
 
   list.innerHTML='';
   visible.forEach(([dk,d,v])=>{
-    const pct=maxV?v/maxV*100:0,color=distColor(dk);
     const feat=GJ.features.find(f=>String(f.properties[DIST_FIELD])===dk);
     const name=NAME_FIELD&&feat?(feat.properties[NAME_FIELD]||''):'';
     const item=document.createElement('div');
     item.className='dl-item'+(String(dk)===String(selDist)?' active':'');
-    item.innerHTML=`<div class="dl-num">${dk}</div><div class="dl-name">${name}</div><div class="dl-bar-wrap"><div class="dl-bar" style="width:${pct.toFixed(1)}%;background:${color}"></div></div><div class="dl-val">${cfg.fmt(v)}</div>`;
+    item.innerHTML=`<div class="dl-num">${dk}</div><div class="dl-name">${name}</div><div class="dl-val" style="color:${distColor(dk)}">${cfg.fmt(v)}</div>`;
     item.addEventListener('click',()=>{
       selDist=dk;
       const feat2=GJ.features.find(f=>String(f.properties[DIST_FIELD])===dk);
@@ -383,6 +354,7 @@ function initLayer(){
 
 document.querySelectorAll('.mbt').forEach(b=>b.addEventListener('click',()=>{
   curMetric=b.dataset.metric;
+  activeFilterBuckets.clear();
   document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));b.classList.add('on');
   document.getElementById('ltitle').textContent=METRIC_CFG[curMetric].label;
   document.getElementById('lbar').style.background=METRIC_CFG[curMetric].grad;
