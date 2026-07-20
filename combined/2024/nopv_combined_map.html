@@ -39,6 +39,7 @@ h1 span{color:var(--accent)}
 .bchip{flex:1;padding:6px 9px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;cursor:pointer;border-radius:3px;transition:all .15s;text-align:center}
 #chamberTabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0}
 .chamber-tab{flex:1;padding:10px 6px;border:none;border-right:1px solid var(--border);background:transparent;color:var(--muted);font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.chamber-tab:disabled{opacity:.4;cursor:not-allowed}
 .chamber-tab:last-child{border-right:none}
 .chamber-tab.on{background:rgba(232,255,71,.08);color:var(--accent)}
 .chamber-tab:hover{color:var(--text)}
@@ -118,7 +119,7 @@ h1 span{color:var(--accent)}
   <div id="metric-controls">
     <div class="fl">District Colors</div>
     <div class="mbts">
-        <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Avg Cost-to-Income</button>
+        <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Distress Rate</button>
         <button class="mbt" data-metric="ru"><div class="msw" style="background:linear-gradient(90deg,#c847ff,#e8ff47)"></div>Residential Units</button>
     </div>
   </div>
@@ -158,7 +159,8 @@ const CHAMBERS = {
   assembly: { label:'Assembly Districts',      distField:'District', nameField:'Name', partyField:'Party', distLabel:'AD', cmNames:null,              dataFile:'district_data_assembly.json', gj:GJ_ASSEMBLY },
   council:  { label:'City Council Districts',  distField:'CounDist', nameField:null,   partyField:null,    distLabel:'CD', cmNames:CM_NAMES_COUNCIL,  dataFile:'district_data_council.json',  gj:GJ_COUNCIL }
 };
-let currentChamber = 'senate';
+let currentChamber = null;
+let chamberLoadToken = 0;
 let GJ          = CHAMBERS.senate.gj;
 let DIST_FIELD   = CHAMBERS.senate.distField;
 let NAME_FIELD   = CHAMBERS.senate.nameField;
@@ -171,7 +173,7 @@ function getDistrictName(dk, props){
 }
 const METRIC_CFG  = {
   count:{label:"Property Count",grad:"linear-gradient(90deg,#47c5ff,#e8ff47)",stops:[[71,197,255],[232,255,71]],fmt:v=>v.toLocaleString()},
-  ocr:{label:"Avg Cost-to-Income",grad:"linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)",stops:[[71,255,140],[255,209,71],[255,71,87]],fmt:v=>(v*100).toFixed(1)+"%"},
+  ocr:{label:"Distress Rate",grad:"linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)",stops:[[71,255,140],[255,209,71],[255,71,87]],fmt:v=>(v*100).toFixed(1)+"%"},
   tv:{label:"Total Taxable Value",grad:"linear-gradient(90deg,#47c5ff,#c847ff)",stops:[[71,197,255],[200,71,255]],fmt:v=>v>=1e9?"$"+(v/1e9).toFixed(1)+"B":v>=1e6?"$"+(v/1e6).toFixed(1)+"M":v>=1e3?"$"+(v/1e3).toFixed(0)+"K":"$"+Math.round(v)},
   noi:{label:"Net Op. Income",grad:"linear-gradient(90deg,#47ff8c,#47c5ff)",stops:[[71,255,140],[71,197,255]],fmt:v=>v>=1e9?"$"+(v/1e9).toFixed(1)+"B":v>=1e6?"$"+(v/1e6).toFixed(1)+"M":v>=1e3?"$"+(v/1e3).toFixed(0)+"K":"$"+Math.round(v)},
   tax:{label:"Total Taxes",grad:"linear-gradient(90deg,#ffd147,#ff8c47)",stops:[[255,209,71],[255,140,71]],fmt:v=>v>=1e9?"$"+(v/1e9).toFixed(1)+"B":v>=1e6?"$"+(v/1e6).toFixed(1)+"M":v>=1e3?"$"+(v/1e3).toFixed(0)+"K":"$"+Math.round(v)},
@@ -203,6 +205,7 @@ function toggleBucketFilter(idx){
   else activeFilterBuckets.add(idx);
   renderDiscreteLegend();
   refreshLayer();
+  buildList();
 }
 function renderDiscreteLegend(){
   const cfg=METRIC_CFG[curMetric];
@@ -225,6 +228,7 @@ function setColorMode(mode){
   document.getElementById('discLegend').classList.toggle('show',mode==='discrete');
   if(mode==='discrete') renderDiscreteLegend();
   refreshLayer();
+  buildList();
 }
 let AGG    = {};   // district_key -> stat object  (pre-computed in Python)
 let selDist = null;
@@ -304,7 +308,13 @@ function buildList(){
   const list=document.getElementById('dist-list');
   const hv=document.getElementById('dlh-val');if(hv)hv.textContent=METRIC_CFG[curMetric].label;
   const expanded=list.dataset.expanded==='1';
-  const entries=Object.entries(AGG).sort((a,b)=>(b[1][curMetric]||0)-(a[1][curMetric]||0));
+  let entries=Object.entries(AGG).sort((a,b)=>(b[1][curMetric]||0)-(a[1][curMetric]||0));
+
+  if(colorMode==='discrete'&&activeFilterBuckets.size>0){
+    const {edges}=dataEdges(curMetric);
+    entries=entries.filter(([dk,d])=>activeFilterBuckets.has(bucketIndex(edges,d[curMetric]||0)));
+  }
+
   const displayEntries=entries.map(([dk,d])=>[dk,d,d[curMetric]||0]);
 
   const cfg=METRIC_CFG[curMetric];
@@ -387,12 +397,17 @@ async function loadChamberData(name){
 }
 
 async function switchChamber(name){
+  if(name===currentChamber) return; // already showing this chamber — no-op
   const cfg = CHAMBERS[name];
+  const myToken = ++chamberLoadToken;
   currentChamber = name;
   GJ = cfg.gj; DIST_FIELD = cfg.distField; NAME_FIELD = cfg.nameField;
   PARTY_FIELD = cfg.partyField; LABEL = cfg.distLabel; CM_NAMES = cfg.cmNames;
 
-  document.querySelectorAll('.chamber-tab').forEach(b=>b.classList.toggle('on', b.dataset.chamber===name));
+  document.querySelectorAll('.chamber-tab').forEach(b=>{
+    b.classList.toggle('on', b.dataset.chamber===name);
+    b.disabled = true;
+  });
   document.getElementById('chamberH1').innerHTML = cfg.label+'<br><span>District Map</span>';
   document.title = 'NYC NOPV — '+cfg.label;
 
@@ -408,6 +423,7 @@ async function switchChamber(name){
   document.getElementById('modeDiscrete').classList.remove('on');
   document.getElementById('dp-ph').style.display='block';
   document.getElementById('dp-detail').style.display='none';
+  map.closePopup();
 
   try{
     await loadChamberData(name);
@@ -417,7 +433,10 @@ async function switchChamber(name){
     AGG = {};
   }
 
-  map.closePopup();
+  // A newer switch started while this fetch was in flight — abandon this
+  // one entirely so its (now stale) data can never clobber the later tab.
+  if(myToken!==chamberLoadToken) return;
+
   if(distLayer){ map.removeLayer(distLayer); distLayer=null; }
   initLayer();
   buildList();
@@ -425,14 +444,13 @@ async function switchChamber(name){
     const b = distLayer.getBounds();
     if(b && b.isValid()) map.fitBounds(b,{padding:[20,20]});
   }catch(e){ /* ignore — falls back to whatever view was already set */ }
+
+  document.querySelectorAll('.chamber-tab').forEach(b=>b.disabled=false);
 }
 
 window.addEventListener('load',async()=>{
   try{
-    await loadChamberData('senate');
-    initLayer();buildList();
-    document.getElementById('ltitle').textContent=METRIC_CFG[curMetric].label;
-    document.getElementById('lbar').style.background=METRIC_CFG[curMetric].grad;
+    await switchChamber('senate');
     const el=document.getElementById('loading');el.classList.add('out');setTimeout(()=>el.remove(),600);
   }catch(err){
     document.getElementById('load-status').textContent='Error: '+err.message;
