@@ -108,7 +108,7 @@ h1 span{color:var(--accent)}
   <div id="metric-controls">
     <div class="fl">District Colors</div>
     <div class="mbts">
-        <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Avg Cost-to-Income</button>
+        <button class="mbt on" data-metric="ocr"><div class="msw" style="background:linear-gradient(90deg,#ff4757,#ffd147,#47ff8c)"></div>Distress Rate</button>
         <button class="mbt" data-metric="ru"><div class="msw" style="background:linear-gradient(90deg,#c847ff,#e8ff47)"></div>Residential Units</button>
     </div>
   </div>
@@ -146,7 +146,7 @@ const PARTY_FIELD = "Party";
 const LABEL       = 'SD';
 const METRIC_CFG  = {
   count:{label:"Property Count",grad:"linear-gradient(90deg,#47c5ff,#e8ff47)",stops:[[71,197,255],[232,255,71]],fmt:v=>v.toLocaleString()},
-  ocr:{label:"Avg Cost-to-Income",grad:"linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)",stops:[[71,255,140],[255,209,71],[255,71,87]],fmt:v=>(v*100).toFixed(1)+"%"},
+  ocr:{label:"Distress Rate",grad:"linear-gradient(90deg,#47ff8c,#ffd147,#ff4757)",stops:[[71,255,140],[255,209,71],[255,71,87]],fmt:v=>(v*100).toFixed(1)+"%"},
   tv:{label:"Total Taxable Value",grad:"linear-gradient(90deg,#47c5ff,#c847ff)",stops:[[71,197,255],[200,71,255]],fmt:v=>v>=1e9?"$"+(v/1e9).toFixed(1)+"B":v>=1e6?"$"+(v/1e6).toFixed(1)+"M":v>=1e3?"$"+(v/1e3).toFixed(0)+"K":"$"+Math.round(v)},
   noi:{label:"Net Op. Income",grad:"linear-gradient(90deg,#47ff8c,#47c5ff)",stops:[[71,255,140],[71,197,255]],fmt:v=>v>=1e9?"$"+(v/1e9).toFixed(1)+"B":v>=1e6?"$"+(v/1e6).toFixed(1)+"M":v>=1e3?"$"+(v/1e3).toFixed(0)+"K":"$"+Math.round(v)},
   tax:{label:"Total Taxes",grad:"linear-gradient(90deg,#ffd147,#ff8c47)",stops:[[255,209,71],[255,140,71]],fmt:v=>v>=1e9?"$"+(v/1e9).toFixed(1)+"B":v>=1e6?"$"+(v/1e6).toFixed(1)+"M":v>=1e3?"$"+(v/1e3).toFixed(0)+"K":"$"+Math.round(v)},
