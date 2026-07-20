@@ -411,7 +411,12 @@ async function switchChamber(name){
   document.getElementById('chamberH1').innerHTML = cfg.label+'<br><span>District Map</span>';
   document.title = 'NYC NOPV — '+cfg.label;
 
-  selDist=null; curMetric='ocr'; colorMode='continuous'; activeFilterBuckets.clear();
+  // Fully reset every piece of filter/selection state left over from
+  // whichever chamber was showing before — this is what previously could
+  // leave the map in a broken state if a discrete bucket filter was still
+  // selected when you switched tabs.
+  selDist=null; curMetric='ocr'; colorMode='continuous';
+  activeFilterBuckets.clear();
   document.querySelectorAll('.mbt').forEach(x=>x.classList.remove('on'));
   const ocrBtn=document.querySelector('.mbt[data-metric="ocr"]'); if(ocrBtn) ocrBtn.classList.add('on');
   document.getElementById('ltitle').textContent=METRIC_CFG['ocr'].label;
@@ -419,6 +424,7 @@ async function switchChamber(name){
   document.getElementById('lbar').style.display='block';
   document.getElementById('ltx').style.display='flex';
   document.getElementById('discLegend').classList.remove('show');
+  document.getElementById('discLegend').innerHTML='';
   document.getElementById('modeContinuous').classList.add('on');
   document.getElementById('modeDiscrete').classList.remove('on');
   document.getElementById('dp-ph').style.display='block';
@@ -435,17 +441,25 @@ async function switchChamber(name){
 
   // A newer switch started while this fetch was in flight — abandon this
   // one entirely so its (now stale) data can never clobber the later tab.
+  // The finally block below still re-enables the tabs even in this case.
   if(myToken!==chamberLoadToken) return;
 
-  if(distLayer){ map.removeLayer(distLayer); distLayer=null; }
-  initLayer();
-  buildList();
   try{
-    const b = distLayer.getBounds();
-    if(b && b.isValid()) map.fitBounds(b,{padding:[20,20]});
-  }catch(e){ /* ignore — falls back to whatever view was already set */ }
-
-  document.querySelectorAll('.chamber-tab').forEach(b=>b.disabled=false);
+    if(distLayer){ map.removeLayer(distLayer); distLayer=null; }
+    initLayer();
+    buildList();
+    const b = distLayer && distLayer.getBounds();
+    if(b && b.isValid && b.isValid()) map.fitBounds(b,{padding:[20,20]});
+  }catch(err){
+    console.error('Failed to render chamber "'+name+'":', err);
+    document.getElementById('load-status').textContent='Error rendering map: '+err.message;
+  }finally{
+    // No matter what happened above — success, render error, or anything
+    // else — the tabs must never stay stuck disabled.
+    if(myToken===chamberLoadToken){
+      document.querySelectorAll('.chamber-tab').forEach(b=>b.disabled=false);
+    }
+  }
 }
 
 window.addEventListener('load',async()=>{
