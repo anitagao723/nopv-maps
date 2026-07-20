@@ -178,6 +178,7 @@ function toggleBucketFilter(idx){
   else activeFilterBuckets.add(idx);
   renderDiscreteLegend();
   refreshLayer();
+  buildList();
 }
 function renderDiscreteLegend(){
   const cfg=METRIC_CFG[curMetric];
@@ -200,6 +201,7 @@ function setColorMode(mode){
   document.getElementById('discLegend').classList.toggle('show',mode==='discrete');
   if(mode==='discrete') renderDiscreteLegend();
   refreshLayer();
+  buildList();
 }
 let AGG    = {};   // district_key -> stat object  (pre-computed in Python)
 let selDist = null;
@@ -279,7 +281,13 @@ function buildList(){
   const list=document.getElementById('dist-list');
   const hv=document.getElementById('dlh-val');if(hv)hv.textContent=METRIC_CFG[curMetric].label;
   const expanded=list.dataset.expanded==='1';
-  const entries=Object.entries(AGG).sort((a,b)=>(b[1][curMetric]||0)-(a[1][curMetric]||0));
+  let entries=Object.entries(AGG).sort((a,b)=>(b[1][curMetric]||0)-(a[1][curMetric]||0));
+
+  if(colorMode==='discrete'&&activeFilterBuckets.size>0){
+    const {edges}=dataEdges(curMetric);
+    entries=entries.filter(([dk,d])=>activeFilterBuckets.has(bucketIndex(edges,d[curMetric]||0)));
+  }
+
   const displayEntries=entries.map(([dk,d])=>[dk,d,d[curMetric]||0]);
 
   const cfg=METRIC_CFG[curMetric];
