@@ -285,9 +285,9 @@ function distStyle(feat){
   return {
     color:sel?'#e8ff47':'rgba(232,255,71,0.3)',
     weight:sel?2.5:1,
-    fillColor:has?distColor(dk):'rgba(20,25,35,0.9)',
-    fillOpacity:has?(sel?0.72:0.52):0.0,
-    stroke:has,
+    fillColor:has?distColor(dk):'rgba(100,116,139,0.4)',
+    fillOpacity:has?(sel?0.72:0.52):0.25,
+    stroke:true,
   };
 }
 
@@ -454,7 +454,11 @@ async function switchChamber(name){
 
   try{
     await loadChamberData(name);
-    setStatus('', false); // clear any error banner left from a previous failed switch
+    if(Object.keys(AGG).length===0){
+      setStatus('Warning: '+cfg.dataFile+' loaded but contains no matching districts — the map will show outlines only, with no data or colors.', true);
+    } else {
+      setStatus('', false); // clear any error banner left from a previous failed switch
+    }
   }catch(err){
     setStatus('Error: '+err.message, true);
     console.error(err);
