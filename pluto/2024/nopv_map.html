@@ -292,9 +292,11 @@ function fmt$(v){if(v>=1e6)return'$'+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'$'+
 const renderer = L.canvas({ padding: 0.5 });
 const map = L.map('map', { center:[40.705,-73.97], zoom:11, zoomControl:true });
 
-L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',{
-  attribution:'&copy; OpenStreetMap contributors &copy; CARTO',
-  subdomains:'abcd', maxZoom:19
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{
+  attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',maxNativeZoom:16,maxZoom:19
+}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{
+  maxNativeZoom:16,maxZoom:19
 }).addTo(map);
 
 // ── MARKER LAYER ──────────────────────────────────────────────────────────
